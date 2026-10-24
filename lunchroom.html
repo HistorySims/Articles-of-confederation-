@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lunchroom Congress</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a side-view cutaway of the school (Main Building, North Wing, Annex portables) on the left; the council's plan sheet on the right; a sticky scoreboard on top compares "students who like it" with "votes that count". Light theme only, by choice. */
+:root{
+  color-scheme:light;
+  --page:#e7eef0;
+  --paper:#fbfcfb;
+  --ink:#17253a;
+  --muted:#556577;
+  --line:#c7d2d6;
+  --locker:#f0b11c;
+  --locker-dk:#b07e06;
+  --yes:#1d8a5c;
+  --yes-soft:#d3eee0;
+  --no:#c6452e;
+  --no-soft:#f6d8cf;
+  --sky:#cfe6f2;
+  --grass:#9cc47a;
+  --g9:#2f74c0;
+  --g10:#e07a22;
+  --g11:#8452c2;
+  --g12:#c99a0e;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--page)}
+body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.room-hit:focus-visible{outline:3px solid var(--locker);outline-offset:2px}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.top{background:var(--ink);color:#fff}
+.top .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px}
+.brand{font-family:var(--display);font-weight:900;font-size:26px;letter-spacing:.02em;text-transform:uppercase;line-height:1}
+.brand span{color:var(--locker)}
+.round-tag{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.85}
+
+/* Scoreboard */
+.score{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:2px solid var(--line)}
+.score .wrap{display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px 22px;align-items:center;padding-block:10px}
+.meter{min-width:0}
+.meter-label{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.meter-num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);text-transform:none;letter-spacing:0;white-space:nowrap}
+.bar{position:relative;height:14px;border-radius:7px;background:var(--no-soft);margin-top:5px;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--yes);border-radius:7px;transition:width .5s ease}
+.bar .need{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.pips{display:flex;gap:4px;margin-top:5px}
+.pip{flex:1 1 0;min-width:10px;height:14px;border-radius:4px;background:var(--no-soft);transition:background .3s}
+.pip.y{background:var(--yes)}
+.pip.needline{box-shadow:inset 0 0 0 2px var(--ink)}
+.budget{text-align:right}
+.budget b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
+.budget span{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.budget.low b{color:var(--no)}
+.call{background:var(--locker);color:#1b1606;border:0;border-radius:10px;padding:12px 18px;font-family:var(--display);font-weight:800;font-size:22px;text-transform:uppercase;letter-spacing:.03em;box-shadow:0 3px 0 var(--locker-dk);white-space:nowrap}
+.call:active{transform:translateY(2px);box-shadow:0 1px 0 var(--locker-dk)}
+.call:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:760px){.score .wrap{grid-template-columns:1fr 1fr;gap:8px 14px}.meter-label{flex-direction:column;gap:0;font-size:11px}.meter-num{font-size:12px}.budget{text-align:left}.budget b{font-size:18px}.call{padding:10px;font-size:19px}}
+
+/* Page layout */
+main .wrap{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr);gap:20px;padding-block:16px 40px;align-items:start}
+@media (max-width:980px){main .wrap{grid-template-columns:1fr}}
+
+.notice{background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:10px 14px;display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.notice .rule{font-family:var(--display);font-weight:900;font-size:28px;line-height:1;text-transform:uppercase}
+.notice p{margin:4px 0 0;color:var(--muted);font-size:15px}
+.stamp{flex:none;font-family:var(--mono);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;background:var(--ink);color:#fff;padding:4px 8px;border-radius:3px}
+@media (max-width:520px){.notice{flex-direction:column;align-items:flex-start;gap:8px}.notice .rule{font-size:24px}}
+
+/* Campus */
+.campus{background:linear-gradient(var(--sky),#e6f2f7 70%);border-radius:10px;padding:12px 12px 0;overflow:hidden;border:2px solid var(--line)}
+.bldgs{display:grid;grid-template-columns:640fr 430fr;gap:14px 18px;align-items:end}
+.bldg{min-width:0}
+.bldg.annex{grid-column:1/-1;width:71%}
+.bldg svg{display:block;width:100%;height:auto;overflow:visible}
+.cap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.cap b{font-family:var(--display);font-weight:800;font-size:19px;text-transform:uppercase;letter-spacing:.03em}
+.cap small{color:var(--muted);font-size:13px}
+.verd{font-family:var(--mono);font-size:12px;font-weight:600;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:var(--paper);color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+.verd.y{background:var(--yes);border-color:var(--yes);color:#fff}
+.verd.t{background:#7d8796;border-color:#7d8796;color:#fff}
+.gtally.t{color:#7d8796;font-weight:600}
+.verd.n{background:var(--no);border-color:var(--no);color:#fff}
+.lawn{height:16px;background:var(--grass);margin:0 -12px;border-top:3px solid #7fa860}
+@media (max-width:700px){.bldgs{grid-template-columns:1fr}.bldg.annex{width:100%}}
+
+.kid{transition:transform .8s cubic-bezier(.45,.05,.3,1)}
+.kid.hop .bod{animation:hop .8s ease}
+@keyframes hop{30%{transform:translateY(-4px)}60%{transform:translateY(0)}}
+.room-hit{cursor:pointer}
+.room-hit:hover .cellwall{filter:brightness(1.04)}
+.sel-ring{display:none}
+.room-hit.sel .sel-ring{display:block}
+
+.below{display:grid;grid-template-columns:auto 1fr;gap:12px;margin-top:12px;align-items:start}
+@media (max-width:700px){.below{grid-template-columns:1fr}}
+.legend{background:var(--paper);border-radius:8px;padding:10px 12px;font-size:14px;display:grid;gap:4px;border:1px solid var(--line)}
+.legend .t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.gtally{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto;padding-left:8px}
+.gtally.y{color:var(--yes);font-weight:600}
+.gtally.n{color:var(--no);font-weight:600}
+.inspect{background:var(--paper);border-left:5px solid var(--locker);border-radius:4px;padding:10px 12px;font-size:15px;min-width:0}
+.inspect h3{margin:0 0 4px;font-size:16px}
+.inspect ul{margin:6px 0 0;padding-left:18px}
+.lk{color:var(--yes);font-weight:700}
+.dk{color:var(--no);font-weight:700}
+
+/* Plan sheet */
+.sheet{background:var(--paper);border-radius:10px;padding:14px;border:2px solid var(--line);position:sticky;top:calc(env(safe-area-inset-top,0px) + 92px);max-height:calc(100vh - 110px);overflow-y:auto}
+@media (max-width:980px){.sheet{position:static;max-height:none}}
+h2.sec{font-family:var(--display);font-weight:800;font-size:19px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px;color:var(--muted)}
+.topic{font-family:var(--display);font-weight:900;font-size:30px;line-height:1.05;text-transform:uppercase;margin:0 0 2px;text-wrap:balance}
+.topic-sub{margin:0 0 10px;color:var(--muted)}
+.opts{display:grid;gap:8px;margin-bottom:14px}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;border:2px solid var(--line);border-radius:8px;background:#fff;padding:10px;width:100%}
+.opt[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 6px 0 0 var(--locker)}
+.opt:disabled{opacity:.5;cursor:not-allowed}
+.box{flex:none;width:22px;height:22px;border:2px solid var(--ink);border-radius:50%;display:grid;place-items:center;margin-top:1px}
+.extra .box{border-radius:5px}
+.opt[aria-pressed="true"] .box::after{content:"";width:10px;height:10px;background:var(--ink);border-radius:inherit}
+.extra[aria-pressed="true"] .box{background:var(--ink)}
+.extra[aria-pressed="true"] .box::after{width:10px;height:6px;border:solid #fff;border-width:0 0 3px 3px;background:none;border-radius:0;transform:rotate(-45deg) translate(1px,-1px)}
+.opt .body{min-width:0;flex:1}
+.opt .head{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.opt b{font-size:16px}
+.price{font-family:var(--mono);font-size:13px;font-weight:600;white-space:nowrap}
+.opt small{display:block;color:var(--muted);font-size:14px;line-height:1.35;margin-top:2px}
+.fx{list-style:none;margin:6px 0 0;padding:0;font-size:14px;line-height:1.35;display:grid;gap:2px}
+.fx li{display:flex;gap:6px}
+.fx .p{color:var(--yes);font-weight:700;flex:none;width:12px}
+.fx .m{color:var(--no);font-weight:700;flex:none;width:12px}
+.why-off{font-size:13px;color:var(--no);margin-top:4px}
+.reset{background:none;border:0;color:var(--muted);text-decoration:underline;padding:4px 0;font-size:14px}
+
+/* Overlays */
+.veil{position:fixed;inset:0;z-index:20;background:rgba(10,16,26,.55);display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
+.card{background:var(--paper);border-radius:12px;max-width:600px;width:100%;padding:22px;box-shadow:0 20px 50px -20px rgba(0,0,0,.6)}
+.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.card h2{font-family:var(--display);font-weight:900;font-size:40px;line-height:1;text-transform:uppercase;margin:6px 0 10px;text-wrap:balance}
+.card p{margin:0 0 10px}
+.big{font-size:18px}
+.rulebox{border:2px solid var(--ink);border-radius:6px;padding:10px 12px;margin:12px 0}
+.rulebox b{font-family:var(--display);font-size:24px;text-transform:uppercase;display:block;line-height:1.1}
+.verdict{font-family:var(--display);font-weight:900;font-size:56px;line-height:.95;text-transform:uppercase;margin:4px 0 10px}
+.verdict.y{color:var(--yes)}
+.verdict.n{color:var(--no)}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.compare div{background:var(--page);border-radius:8px;padding:10px}
+.compare b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.compare span{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btn{border:2px solid var(--ink);background:var(--paper);border-radius:8px;padding:10px 16px;font-weight:700}
+.btn.go{background:var(--locker);border-color:var(--locker);color:#1b1606}
+.tablewrap{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:480px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+ol.q{padding-left:20px;margin:6px 0}
+ol.q li{margin-bottom:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.home{color:inherit;text-decoration:none;font-size:14px;font-weight:700;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:4px 10px;white-space:nowrap}.home:hover{background:rgba(255,255,255,.12)}.home:focus-visible{outline:3px solid #f0b11c;outline-offset:2px}</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="home" href="index.html">&larr; Menu</a>
+  <div class="brand">Lunchroom <span>Congress</span></div>
+  <div class="round-tag" id="roundTag">Round 1 of 4</div>
+</div></header>
+
+<section class="score" aria-label="Scoreboard"><div class="wrap">
+  <div class="meter">
+    <div class="meter-label"><span>Students who like it</span><span class="meter-num" id="popNum">–</span></div>
+    <div class="bar"><i id="popBar" style="width:0"></i><span class="need" style="left:50%"></span></div>
+  </div>
+  <div class="meter">
+    <div class="meter-label"><span id="unitLabel">Votes that count</span><span class="meter-num" id="unitNum">–</span></div>
+    <div id="unitViz"></div>
+  </div>
+  <div class="budget" id="budgetBox"><b id="budgetNum">$2,500</b><span>left to spend</span></div>
+  <button class="call" id="callBtn" disabled>Call the vote</button>
+</div></section>
+
+<main><div class="wrap">
+  <section aria-label="The school">
+    <div class="notice">
+      <div class="stamp">Principal's rule</div>
+      <div><div class="rule" id="ruleTitle"></div><p id="ruleText"></p></div>
+    </div>
+    <div class="campus">
+      <div class="bldgs">
+        <div class="bldg"><div class="cap"><b>Main Building</b><small>73 students · next to the cafeteria</small><span class="verd" id="wv-Main" hidden></span></div><svg id="svg-Main"></svg></div>
+        <div class="bldg"><div class="cap"><b>North Wing</b><small>32 students · has a courtyard</small><span class="verd" id="wv-North" hidden></span></div><svg id="svg-North"></svg></div>
+        <div class="bldg annex"><div class="cap"><b>The Annex</b><small>14 students · portables behind the field, a long walk</small><span class="verd" id="wv-Annex" hidden></span></div><svg id="svg-Annex"></svg></div>
+      </div>
+      <div class="lawn"></div>
+    </div>
+    <div class="below">
+      <div class="legend" id="legend"></div>
+      <div class="inspect" id="inspect"></div>
+    </div>
+  </section>
+
+  <section class="sheet" aria-label="Your plan">
+    <h2 class="sec">Your plan</h2>
+    <p class="topic" id="topic"></p>
+    <p class="topic-sub" id="topicSub"></p>
+    <div class="opts" id="cores" role="radiogroup"></div>
+    <h2 class="sec">Add extras</h2>
+    <p class="topic-sub">Every extra helps someone and hurts someone. You have $2,500.</p>
+    <div class="opts" id="extras"></div>
+    <button class="reset" id="resetBtn">Clear my plan</button>
+  </section>
+</div></main>
+
+<div class="veil" id="veil" hidden><div class="card" id="card" role="dialog" aria-modal="true"></div></div>
+
+<script>
+// ================= School =================
+// [room, grade, wing, students]; order matters (seeded opinions)
+const ROOMS=[
+ ['101',9,'Main',16],['102',9,'Main',15],['201',10,'Main',15],['202',10,'Main',14],['203',11,'Main',13],
+ ['N1',9,'North',9],['N2',11,'North',8],['N3',12,'North',8],['N4',10,'North',7],
+ ['P1',12,'Annex',5],['P2',12,'Annex',4],['P3',11,'Annex',5]];
+const GN={9:'9th',10:'10th',11:'11th',12:'12th'};
+const WN={Main:'Main Building',North:'North Wing',Annex:'The Annex'};
+const BUDGET=2500;
+
+// effects: [who, amount, reason]; who = 'g9'..'g12' or a wing name
+const EXTRAS=[
+ {id:'pizza',name:'Pizza Fridays',cost:1000,fx:[['Main',2,'the pizza line is in their cafeteria'],['Annex',-4,'the pizza is gone before they walk over, and they still pay'],['North',-2,'they pay, but rarely get a slice']]},
+ {id:'lounge',name:'Senior lounge',cost:1500,fx:[['g12',5,'a room with couches, just for seniors'],['g9',-4,'the lounge takes over their study room'],['g10',-1,'they have to wait two years to use it']]},
+ {id:'prom',name:'Cheaper prom tickets',cost:1500,fx:[['g11',4,'prom is in 11th grade'],['g10',-3,'they pay for it but cannot go until next year'],['g9',-1,'they pay for it too']]},
+ {id:'walk',name:'10 more lunch minutes for the Annex',cost:500,fx:[['Annex',5,'they spend half of lunch walking'],['Main',-3,'the schedule shifts and their lunch gets 10 minutes shorter']]},
+ {id:'courtyard',name:'Picnic tables in the North courtyard',cost:1000,fx:[['North',4,'they can eat outside'],['Main',-2,'the tables are taken from the Main front steps'],['Annex',-2,'the courtyard is locked to them']]},
+ {id:'drivers',name:"Free driver's ed after school",cost:1500,fx:[['g10',4,'most of them turn 16 this year'],['g11',-3,'driver’s ed takes the SAT prep time slot'],['g12',-1,'they already have licenses']]},
+ {id:'fieldday',name:'Freshman field day',cost:1000,fx:[['g9',4,'a day of games for new students'],['g12',-3,'field day takes the date of the senior picnic'],['g11',-1,'they lose a day of class for nothing']]},
+];
+
+const ROUNDS=[
+ {topic:'The Spring Dance',sub:'Pick one kind of dance.',unit:'student',need:60,total:119,
+  ruleTitle:'Every student gets one vote',ruleText:'More than half of the students must like your plan. You need 60 of 119.',
+  intro:'The council must plan the spring dance. Every student in the school gets one vote. If most students like your plan, it passes.',
+  cores:[{id:'glow',name:'Glow party in the gym',fx:[['g9',3,'they love neon and loud music'],['g10',2,'they like it'],['g11',-2,'they think it is for little kids'],['g12',-3,'they think it is for little kids']]},
+         {id:'formal',name:'Spring formal at a hall',fx:[['g12',3,'dress up, dinner, photos'],['g11',2,'they like dressing up'],['g10',-1,'boring'],['g9',-2,'boring and expensive']]}]},
+ {topic:'The Class Trip',sub:'Pick one trip.',unit:'room',need:7,total:12,
+  ruleTitle:'One vote per homeroom',ruleText:'Each homeroom votes yes or no. Big or small, every room counts the same. You need 7 of 12 rooms.',
+  intro:'New rule from the principal. Students do not vote one by one anymore. Each homeroom takes its own vote, and the room gets one vote. A room with 16 students counts the same as a room with 4.',
+  cores:[{id:'park',name:'Amusement park',fx:[['g9',3,'they love rides'],['g10',3,'they love rides'],['g11',-1,'they went last year'],['g12',-2,'they have been there too many times']]},
+         {id:'city',name:'Broadway show in the city',fx:[['g11',2,'they like the city'],['g12',2,'they like the city'],['g9',-1,'it sounds boring'],['g10',-1,'it sounds boring']]}]},
+ {topic:'The New Lunch Plan',sub:'Pick one lunch change.',unit:'wing',need:2,total:3,
+  ruleTitle:'One vote per wing',ruleText:'Each part of the school votes yes or no. Every wing counts the same. You need 2 of 3.',
+  intro:'New rule. Now each wing of the school gets one vote. The Main Building has 73 students. The Annex has 14. Their votes count the same.',
+  cores:[{id:'grill',name:'New grill in the Main cafeteria',fx:[['Main',4,'hot food right next door'],['North',-4,'they lose their lunch room to make space'],['Annex',-4,'their snack cart closes']]},
+         {id:'trucks',name:'Food trucks in the back lot',fx:[['Annex',3,'the trucks park right outside'],['North',1,'it is a short walk'],['Main',-2,'they have to walk all the way outside']]}]},
+ {topic:'The $5,000 Student Fund',sub:'Pick one way to spend it.',unit:'grade',need:3,total:4,
+  ruleTitle:'Three of four grades must agree',ruleText:'Each grade votes yes or no. Half is not enough. You need 3 of 4 grades.',
+  intro:'Last rule, and the hardest. Each grade gets one vote, and you need three of the four grades. Half is not enough anymore. Look at the shirt colors: each color is a grade.',
+  cores:[{id:'senior',name:'Senior class trip',fx:[['g12',5,'the trip of a lifetime'],['g9',-1,'they pay for a trip they do not take'],['g10',-1,'they pay for a trip they do not take']]},
+         {id:'welcome',name:'9th-grade welcome day',fx:[['g9',4,'a day just for them'],['g10',-1,'a waste of money'],['g11',-2,'a waste of money'],['g12',-2,'a waste of money']]}]},
+];
+
+// ================= Students (seeded: every class sees the same school) =================
+let seed=17;const rnd=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648};
+const NOISE_KEYS=['pizza','prom','walk','courtyard','drivers','fieldday','lounge','glow','formal','park','city','grill','trucks','senior','welcome'];
+const STUDENTS=[];
+ROOMS.forEach(([room,g,w,n])=>{for(let i=0;i<n;i++){const s={room,g,w,slot:i,delay:(STUDENTS.length*97)%260,noise:{}};NOISE_KEYS.forEach(k=>{const r=rnd();s.noise[k]=r<.06?-2:r<.2?-1:r>.94?2:r>.8?1:0});s.flip=i>=n-Math.max(1,Math.round(n*.13));STUDENTS.push(s)}});
+const amt=(it,g,w)=>{for(const [who,v] of it.fx){if(who==='g'+g||who===w)return v}return 0};
+
+// ================= State =================
+let R=0,core=null,extras=new Set(),tries=0,selRoom=null,prev=null;
+const history=[];
+const allItems=()=>[...ROUNDS[R].cores,...EXTRAS];
+const item=id=>allItems().find(x=>x.id===id);
+const plan=()=>core?[core,...extras]:[];
+const spent=()=>[...extras].reduce((a,id)=>a+item(id).cost,0);
+// Every room has an odd one out or two (s.flip): they strongly disagree with their classmates
+// about the main choice. Extras that help them still help them, so a good deal can win them back.
+const coreAmt=(s,id)=>{const v=amt(item(id),s.g,s.w);if(!s.flip||id!==core)return v;return v>0?-Math.max(2,v):v<0?Math.max(2,-v):0};
+const scoreOf=s=>plan().reduce((a,id)=>a+coreAmt(s,id)+s.noise[id],0);
+const votes=()=>core?STUDENTS.map(s=>scoreOf(s)>0):STUDENTS.map(()=>null);
+const money=n=>'$'+n.toLocaleString('en-US');
+
+function tally(){
+  const yes=votes(),pop=yes.filter(Boolean).length;
+  const group=key=>{const m={};STUDENTS.forEach((s,i)=>{const k=s[key];m[k]=m[k]||{y:0,n:0};yes[i]?m[k].y++:m[k].n++});return m};
+  const rooms=group('room'),wings=group('w'),grades=group('g');
+  const won=m=>Object.values(m).filter(v=>v.y>v.n).length;
+  const u=ROUNDS[R].unit;
+  const count=u==='student'?pop:u==='room'?won(rooms):u==='wing'?won(wings):won(grades);
+  return {yes,pop,rooms,wings,grades,count,pass:!!core&&count>=ROUNDS[R].need};
+}
+
+// ================= Drawing the school =================
+const NS='http://www.w3.org/2000/svg';
+const RW=200,RH=124,M=10;
+const SHIRT=g=>`var(--g${g})`;
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent&&parent.appendChild(e);return e};
+const ROOMPOS={}; // room -> {svg, x, y}
+const KIDS=[];
+
+function defs(svg){
+  const d=el('defs',{},svg);
+  const p=el('pattern',{id:'brick'+svg.id,width:24,height:12,patternUnits:'userSpaceOnUse'},d);
+  el('rect',{width:24,height:12,fill:'#b4553c'},p);
+  el('path',{d:'M0 0H24M0 6H24M0 12H24M6 0V6M18 6V12',stroke:'#93432e','stroke-width':1.2,fill:'none'},p);
+  const b=el('pattern',{id:'block'+svg.id,width:40,height:16,patternUnits:'userSpaceOnUse'},d);
+  el('rect',{width:40,height:16,fill:'#dde8df'},b);
+  el('path',{d:'M0 0H40M0 8H40M10 0V8M30 8V16',stroke:'#cfdcd2','stroke-width':1,fill:'none'},b);
+}
+
+function drawRoom(svg,x,y,id){
+  const g=el('g',{class:'room-hit',tabindex:0,role:'button','data-room':id,'aria-label':'Room '+id},svg);
+  el('rect',{class:'cellwall',x,y,width:RW,height:RH,fill:`url(#block${svg.id})`},g);
+  el('rect',{x,y:y+30,width:80,height:RH-30,fill:'#1d8a5c',opacity:.09},g);
+  el('rect',{x:x+120,y:y+30,width:80,height:RH-30,fill:'#c6452e',opacity:.09},g);
+  el('rect',{x,y:y+RH-8,width:RW,height:8,fill:'#b98a5a'},g);
+  // pennants
+  el('path',{d:`M${x+8} ${y+10}h34l-8 9l8 9h-34z`,fill:'#1d8a5c'},g);
+  el('text',{x:x+12,y:y+23,'font-family':'Big Shoulders Display,Arial Narrow,sans-serif','font-weight':800,'font-size':12,fill:'#fff'},g).textContent='YES';
+  el('path',{d:`M${x+RW-8} ${y+10}h-34l8 9l-8 9h34z`,fill:'#c6452e'},g);
+  el('text',{x:x+RW-30,y:y+23,'font-family':'Big Shoulders Display,Arial Narrow,sans-serif','font-weight':800,'font-size':12,fill:'#fff'},g).textContent='NO';
+  // chalkboard
+  el('rect',{x:x+RW/2-42,y:y+5,width:84,height:33,rx:2,fill:'#2e4a3b',stroke:'#a27c4c','stroke-width':3},g);
+  el('text',{x:x+RW/2,y:y+21,'text-anchor':'middle','font-family':'Big Shoulders Display,Arial Narrow,sans-serif','font-weight':800,'font-size':15,fill:'#f2f2ea'},g).textContent=id;
+  const t=el('text',{x:x+RW/2,y:y+32,'text-anchor':'middle','font-family':'IBM Plex Mono,monospace','font-size':10,fill:'#e6f0e8'},g);t.id='tally-'+id;
+  // verdict frame + selection ring
+  el('rect',{id:'frame-'+id,x:x+2,y:y+2,width:RW-4,height:RH-4,fill:'none','stroke-width':4,stroke:'none'},g);
+  el('rect',{class:'sel-ring',x:x-3,y:y-3,width:RW+6,height:RH+6,fill:'none',stroke:'#f0b11c','stroke-width':5},g);
+  ROOMPOS[id]={g,x,y};
+}
+
+function drawCafeteria(svg,x,y){
+  el('rect',{x,y,width:RW,height:RH,fill:'#eef0e6'},svg);
+  el('rect',{x,y:y+RH-8,width:RW,height:8,fill:'#a9a59a'},svg);
+  el('rect',{x:x+10,y:y+44,width:58,height:30,fill:'#c2c8cc',stroke:'#8d969c'},svg);
+  el('text',{x:x+RW/2,y:y+24,'text-anchor':'middle','font-family':'Big Shoulders Display,Arial Narrow,sans-serif','font-weight':800,'font-size':17,fill:'#17253a','letter-spacing':1},svg).textContent='CAFETERIA';
+  for(let i=0;i<2;i++){el('rect',{x:x+84+i*56,y:y+92,width:46,height:6,fill:'#5d7286'},svg);el('rect',{x:x+88+i*56,y:y+98,width:3,height:18,fill:'#5d7286'},svg);el('rect',{x:x+123+i*56,y:y+98,width:3,height:18,fill:'#5d7286'},svg)}
+  el('rect',{x:x+14,y:y+50,width:12,height:8,rx:2,fill:'#f0b11c'},svg);el('rect',{x:x+30,y:y+50,width:12,height:8,rx:2,fill:'#e07a22'},svg);
+}
+
+function buildSchool(){
+  // Main: 3 cols x 2 floors, parapet sign on top
+  let s=document.getElementById('svg-Main');const MW=3*RW+4*M,MT=46,MH=MT+2*RH+3*M;
+  s.setAttribute('viewBox',`0 0 ${MW} ${MH+14}`);defs(s);
+  el('rect',{x:0,y:MT-16,width:MW,height:MH-MT+16,fill:`url(#brick${s.id})`},s);
+  el('rect',{x:MW*.27,y:4,width:MW*.46,height:30,fill:'#17253a'},s);
+  el('text',{x:MW/2,y:25,'text-anchor':'middle','font-family':'Big Shoulders Display,Arial Narrow,sans-serif','font-weight':900,'font-size':19,'letter-spacing':2,fill:'#f0b11c'},s).textContent='WESTFIELD HIGH SCHOOL';
+  el('line',{x1:MW-24,y1:MT-16,x2:MW-24,y2:0,stroke:'#6b7480','stroke-width':3},s);
+  el('path',{d:`M${MW-22} 2h22v13h-22z`,fill:'#2f74c0'},s);
+  el('rect',{x:0,y:MT+RH+M*1,width:MW,height:M,fill:'#8c918d'},s);
+  const mainRooms=[['201',0,0],['202',1,0],['203',2,0],['101',0,1],['102',1,1]];
+  mainRooms.forEach(([id,c,r])=>drawRoom(s,M+c*(RW+M),MT+M/2+r*(RH+M)+M/2,id));
+  drawCafeteria(s,M+2*(RW+M),MT+M/2+1*(RH+M)+M/2);
+  el('rect',{x:0,y:MH,width:MW,height:14,fill:'#b9bdb8'},s);
+
+  // North: 2 cols x 2 floors, gable roof
+  s=document.getElementById('svg-North');const NW=2*RW+3*M,NT=46,NH=NT+2*RH+3*M;
+  s.setAttribute('viewBox',`0 0 ${NW} ${NH+14}`);defs(s);
+  el('path',{d:`M-6 ${NT-8}L${NW/2} 4L${NW+6} ${NT-8}z`,fill:'#56606c'},s);
+  el('rect',{x:0,y:NT-10,width:NW,height:NH-NT+10,fill:'#a96a45'},s);
+  el('rect',{x:0,y:NT-10,width:NW,height:NH-NT+10,fill:`url(#brick${s.id})`,opacity:.55},s);
+  el('rect',{x:0,y:NT+RH+M,width:NW,height:M,fill:'#8c918d'},s);
+  [['N3',0,0],['N4',1,0],['N1',0,1],['N2',1,1]].forEach(([id,c,r])=>drawRoom(s,M+c*(RW+M),NT+M/2+r*(RH+M)+M/2,id));
+  el('rect',{x:0,y:NH,width:NW,height:14,fill:'#b9bdb8'},s);
+
+  // Annex: three portables on blocks
+  s=document.getElementById('svg-Annex');const PW=RW+16,GAP=44,AW=3*PW+2*GAP+8,AH=RH+16+40;
+  s.setAttribute('viewBox',`0 0 ${AW} ${AH}`);defs(s);
+  ['P1','P2','P3'].forEach((id,i)=>{
+    const x=4+i*(PW+GAP),y=10;
+    el('rect',{x,y:y-6,width:PW,height:8,fill:'#6c7680'},s);
+    el('rect',{x,y,width:PW,height:RH+16,fill:'#d9d2bf',stroke:'#a99f85'},s);
+    for(let k=0;k<5;k++)el('line',{x1:x,x2:x+PW,y1:y+4+k*3,y2:y+4+k*3,stroke:'#c4bba3'},s);
+    drawRoom(s,x+8,y+8,id);
+    [12,PW/2-8,PW-28].forEach(bx=>el('rect',{x:x+bx,y:y+RH+16,width:16,height:12,fill:'#9aa09d',stroke:'#7f8682'},s));
+    el('path',{d:`M${x+PW} ${y+RH+4}h10v6h8v6h8v12h-26z`,fill:'#8e8a7c'},s);
+  });
+  el('rect',{x:0,y:AH-14,width:AW,height:14,fill:'#b8a77d'},s);
+
+  // Kids
+  STUDENTS.forEach((st,i)=>{
+    const P=ROOMPOS[st.room];
+    const k=el('g',{class:'kid','pointer-events':'none'},P.g);
+    const b=el('g',{class:'bod'},k);
+    el('rect',{x:1,y:9,width:10,height:11,rx:3,fill:SHIRT(st.g)},b);
+    el('rect',{x:2.5,y:19,width:2.6,height:5,fill:'#3c4652'},b);
+    el('rect',{x:6.9,y:19,width:2.6,height:5,fill:'#3c4652'},b);
+    el('circle',{cx:6,cy:5,r:4.3,fill:['#8d5a3b','#c48a62','#e8b98f','#5e3a26','#a86f4c'][i%5]},b);
+    k.style.transitionDelay=st.delay+'ms';
+    KIDS[i]=k;
+  });
+}
+
+function slotXY(st,zone){
+  const P=ROOMPOS[st.room],n=ROOMS.find(r=>r[0]===st.room)[3];
+  const floorY=P.y+RH-8-24;
+  if(zone==='u'){ // undecided: centered crowd, 8 per row
+    const per=8,rows=Math.ceil(n/per),r=Math.floor(st.slot/per),c=st.slot%per;
+    const inRow=Math.min(per,n-r*per);
+    return [P.x+RW/2-inRow*12/2+c*12,floorY-(rows-1-r)*15];
+  }
+  const per=6,rows=Math.ceil(n/per),r=Math.floor(st.slot/per),c=st.slot%per;
+  const zx=zone==='y'?P.x+6:P.x+120+2;
+  return [zx+c*12.3,floorY-(rows-1-r)*15];
+}
+
+// ================= Render =================
+const $=id=>document.getElementById(id);
+function buildPlan(){
+  const r=ROUNDS[R];
+  $('roundTag').textContent=`Round ${R+1} of 4`;
+  $('ruleTitle').textContent=r.ruleTitle;$('ruleText').textContent=r.ruleText;
+  $('topic').textContent=r.topic;$('topicSub').textContent=r.sub;
+  const fxList=it=>`<ul class="fx">${it.fx.map(([who,v,why])=>`<li><span class="${v>0?'p':'m'}">${v>0?'+':'−'}</span><span><b style="font-size:14px">${who.startsWith('g')?GN[who.slice(1)]+' grade':WN[who]}</b>${Math.abs(v)<=1?' (a little)':''}: ${why}</span></li>`).join('')}</ul>`;
+  $('cores').innerHTML=r.cores.map(c=>`<button class="opt" role="radio" data-core="${c.id}" aria-pressed="false" aria-checked="false"><span class="box"></span><span class="body"><span class="head"><b>${c.name}</b><span class="price">free</span></span>${fxList(c)}</span></button>`).join('');
+  $('extras').innerHTML=EXTRAS.map(e=>`<button class="opt extra" data-extra="${e.id}" aria-pressed="false"><span class="box"></span><span class="body"><span class="head"><b>${e.name}</b><span class="price">${money(e.cost)}</span></span>${fxList(e)}<span class="why-off" hidden>Not enough money left.</span></span></button>`).join('');
+  prev=null;
+  render();
+}
+
+function render(){
+  const r=ROUNDS[R],t=tally();
+  document.querySelectorAll('[data-core]').forEach(b=>{const on=b.dataset.core===core;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)});
+  const left=BUDGET-spent();
+  document.querySelectorAll('[data-extra]').forEach(b=>{const id=b.dataset.extra,on=extras.has(id),cant=!on&&item(id).cost>left;
+    b.setAttribute('aria-pressed',on);b.disabled=cant;b.querySelector('.why-off').hidden=!cant});
+  $('budgetNum').textContent=money(left);$('budgetBox').classList.toggle('low',left<500);
+  // kids
+  STUDENTS.forEach((st,i)=>{
+    const v=t.yes[i],zone=v===null?'u':v?'y':'n';
+    const [x,y]=slotXY(st,zone);
+    KIDS[i].style.transform=`translate(${x}px,${y}px)`;
+    if(prev&&prev[i]!==v){const b=KIDS[i];b.classList.remove('hop');void b.getBoundingClientRect();b.classList.add('hop')}
+  });
+  prev=t.yes;
+  // room boards
+  ROOMS.forEach(([id])=>{const v=t.rooms[id],f=$('frame-'+id);
+    $('tally-'+id).textContent=core?`${v.y} yes · ${v.n} no`:`${ROOMS.find(x=>x[0]===id)[3]} students`;
+    f.setAttribute('stroke',core&&r.unit==='room'?(v.y>v.n?'#1d8a5c':v.y===v.n?'#7d8796':'#c6452e'):'none')});
+  // wings
+  Object.keys(WN).forEach(k=>{const v=t.wings[k],b=$('wv-'+k);
+    b.hidden=!core;b.className='verd'+(r.unit==='wing'?(v.y>v.n?' y':v.y===v.n?' t':' n'):'');
+    b.textContent=r.unit==='wing'?`${v.y>v.n?'Wing votes yes':v.y===v.n?'Tie, counts as no':'Wing votes no'} · ${v.y}–${v.n}`:`${v.y} yes · ${v.n} no`});
+  // legend with grades
+  $('legend').innerHTML=`<span class="t">Shirt color = grade</span>`+[9,10,11,12].map(g=>{const v=t.grades[g],cls=r.unit==='grade'&&core?(v.y>v.n?' y':v.y===v.n?' t':' n'):'';
+    return `<span><i class="sw" style="background:${SHIRT(g)}"></i>${GN[g]} grade<span class="gtally${cls}">${core?(r.unit==='grade'?(v.y>v.n?'YES ':v.y===v.n?'TIE ':'NO ')+`${v.y}–${v.n}`:`${v.y}–${v.n}`):''}</span></span>`}).join('');
+  // meters
+  $('popNum').textContent=core?`${t.pop} of 119 · ${Math.round(t.pop/119*100)}%`:'pick a plan';
+  $('popBar').style.width=(t.pop/119*100)+'%';
+  const labels={student:'Votes that count: students',room:'Votes that count: homerooms',wing:'Votes that count: wings',grade:'Votes that count: grades'};
+  $('unitLabel').textContent=labels[r.unit];
+  if(r.unit==='student'){
+    $('unitNum').textContent=core?`${t.pop} · need ${r.need}`:`need ${r.need}`;
+    $('unitViz').innerHTML=`<div class="bar"><i style="width:${t.pop/119*100}%"></i><span class="need" style="left:${r.need/119*100}%"></span></div>`;
+  }else{
+    $('unitNum').textContent=core?`${t.count} of ${r.total} · need ${r.need}`:`need ${r.need} of ${r.total}`;
+    $('unitViz').innerHTML=`<div class="pips">${Array.from({length:r.total},(_,i)=>`<span class="pip${core&&i<t.count?' y':''}${i===r.need-1?' needline':''}"></span>`).join('')}</div>`;
+  }
+  $('callBtn').disabled=!core;
+  renderInspect(t);
+}
+
+function renderInspect(t){
+  const box=$('inspect');
+  document.querySelectorAll('.room-hit').forEach(g=>g.classList.toggle('sel',g.dataset.room===selRoom));
+  if(!selRoom){box.innerHTML='<h3>Tap a classroom</h3>See what those students want and what they hate before you change your plan.';return}
+  const [id,g,w,n]=ROOMS.find(x=>x[0]===selRoom),v=t.rooms[id];
+  const items=allItems().map(it=>[it,amt(it,g,w)]).filter(([,a])=>a);
+  const likes=items.filter(([,a])=>a>0).map(([it])=>it.name),hates=items.filter(([,a])=>a<0).map(([it])=>it.name);
+  box.innerHTML=`<h3>Room ${id} · ${GN[g]} grade · ${WN[w]}</h3>${n} students.${core?` Right now <span class="lk">${v.y} like your plan</span> and <span class="dk">${v.n} don't</span>.`:''}
+  <ul><li><span class="lk">They want:</span> ${likes.join(', ')||'nothing on this list'}.</li>
+  <li><span class="dk">They don't want:</span> ${hates.join(', ')||'nothing on this list'}.</li></ul>`;
+}
+
+// ================= Overlays =================
+function show(html){$('card').innerHTML=html;$('veil').hidden=false;const b=$('card').querySelector('button');b&&b.focus()}
+function hide(){$('veil').hidden=true}
+function introCard(){
+  const r=ROUNDS[R];
+  const lead=R===0?`<p class="big">You are the student council president. Your job is to make plans that pass.</p><p>Every student has an opinion. When you change your plan, watch the students walk to the YES side or the NO side of their classroom. Every choice helps some students and hurts others.</p>`:'';
+  show(`<div class="eyebrow">Round ${R+1} of 4</div><h2>${r.topic}</h2>${lead}<p>${r.intro}</p>
+  <div class="rulebox"><b>${r.ruleTitle}</b>${r.ruleText}</div>
+  <div class="row"><button class="btn go" data-act="start">Start round</button></div>`);
+}
+function voteCard(){
+  tries++;
+  const r=ROUNDS[R],t=tally(),pct=Math.round(t.pop/119*100);
+  const unitWord={student:'students',room:'homerooms',wing:'wings',grade:'grades'}[r.unit];
+  let msg;
+  if(t.pass) msg=r.unit==='student'?`Most students liked it, so it passed.`:pct<50?`Only ${pct}% of students liked your plan. It passed anyway, because ${t.count} of ${r.total} ${unitWord} said yes.`:`${t.count} of ${r.total} ${unitWord} said yes. That was enough.`;
+  else msg=r.unit==='student'?`Only ${t.pop} students liked it. You needed ${r.need}.`:pct>=50?`${pct}% of students liked your plan. But only ${t.count} of ${r.total} ${unitWord} voted yes. You needed ${r.need}.`:`Only ${t.count} of ${r.total} ${unitWord} voted yes. You needed ${r.need}.`;
+  if(t.pass)history[R]={topic:r.topic,rule:r.ruleTitle,plan:plan().map(id=>item(id).name),pct,count:`${t.count} of ${r.total} ${unitWord}`,tries};
+  show(`<div class="eyebrow">Round ${R+1} · Vote ${tries}</div>
+  <div class="verdict ${t.pass?'y':'n'}">${t.pass?'Passed':'Failed'}</div>
+  <p class="big">${msg}</p>
+  <div class="compare"><div><b>${pct}%</b><span>of students liked it</span></div><div><b>${t.count} / ${r.total}</b><span>${unitWord} voted yes (need ${r.need})</span></div></div>
+  <div class="row">${t.pass?`<button class="btn go" data-act="next">${R<3?'Next round':'See results'}</button>`:`<button class="btn go" data-act="close">Change my plan</button>`}</div>`);
+}
+function endCard(){
+  const rows=history.map((h,i)=>`<tr><td>${i+1}. ${h.topic}</td><td>${h.rule}</td><td>${h.plan.join(' + ')}</td><td class="num">${h.pct}%</td><td class="num">${h.count}</td><td class="num">${h.tries}</td></tr>`).join('');
+  show(`<div class="eyebrow">All four plans passed</div><h2>Same school. Four rules.</h2>
+  <p>The students never changed. Only the rules for counting votes changed.</p>
+  <div class="tablewrap"><table><thead><tr><th>Round</th><th>Rule</th><th>Your plan</th><th>Students liked it</th><th>Votes that counted</th><th>Tries</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p><b>Talk about it</b></p>
+  <ol class="q">
+   <li>Did your most popular plan always win? When did it lose, and why?</li>
+   <li>The Annex has 14 students. The Main Building has 73. Should they get the same vote? Why or why not?</li>
+   <li>Pick one extra you added. Who did it help, and who paid for it?</li>
+   <li>Which rule was the most fair? Which rule was the easiest to win?</li>
+  </ol>
+  <p>Next, you will run the United States in the 1780s. Under the Articles of Confederation, each state got one vote, and 9 of 13 states had to agree.</p>
+  <div class="row"><a class="btn go" href="league.html" style="text-decoration:none">Play League of Friendship</a><button class="btn" data-act="restart">Play again</button></div>`);
+}
+
+// ================= Events =================
+document.addEventListener('click',e=>{
+  const room=e.target.closest('.room-hit');
+  if(room){selRoom=room.dataset.room;renderInspect(tally());return}
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.core){core=b.dataset.core;render()}
+  else if(b.dataset.extra){const id=b.dataset.extra;extras.has(id)?extras.delete(id):extras.add(id);render()}
+  else if(b.id==='resetBtn'){core=null;extras.clear();render()}
+  else if(b.id==='callBtn'){voteCard()}
+  else if(b.dataset.act==='start'||b.dataset.act==='close'){hide()}
+  else if(b.dataset.act==='next'){if(R<3){R++;core=null;extras.clear();tries=0;selRoom=null;buildPlan();introCard()}else endCard()}
+  else if(b.dataset.act==='restart'){R=0;core=null;extras.clear();tries=0;selRoom=null;history.length=0;buildPlan();introCard()}
+});
+document.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('room-hit')){e.preventDefault();selRoom=e.target.dataset.room;renderInspect(tally())}
+  if(e.key==='Escape'&&!$('veil').hidden&&$('card').querySelector('[data-act="close"],[data-act="start"]'))hide();
+});
+
+buildSchool();buildPlan();introCard();
+</script>
+
+</body>
+</html>

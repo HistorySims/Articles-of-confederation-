@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>League of Friendship</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Big+Shoulders+Display:wght@800;900&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: navy masthead with the thesis picture (13 equal boxes, very unequal crowds), then two numbered menu cards in play order. Light only, matching both games. */
+:root{
+  color-scheme:light;
+  --page:#e6eaee;
+  --paper:#fbfbf9;
+  --ink:#1a2740;
+  --muted:#56637a;
+  --line:#c8d0d9;
+  --buff:#e2b23a;
+  --buff-dk:#a87d12;
+  --locker:#f0b11c;
+  --yes:#1d8a5c;
+  --display:"Libre Caslon Display","Big Caslon","Book Antiqua",Georgia,serif;
+  --lunch:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{background:var(--page)}
+body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ink)}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.mast{background:var(--ink);color:#fff}
+.mast .wrap{padding-block:32px 26px}
+.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--buff)}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(40px,7vw,64px);line-height:1;margin:8px 0 10px;text-wrap:balance}
+.lede{max-width:60ch;margin:0;font-size:18px;color:#d5dbe6}
+
+.states{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:5px;margin-top:24px}
+.st{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:4px;padding:5px 3px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.dots{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-end;gap:2px;min-height:44px;width:100%}
+.dots i{width:5px;height:5px;border-radius:50%;background:var(--buff)}
+.st b{font-family:var(--mono);font-size:11px;font-weight:600}
+.st small{font-family:var(--mono);font-size:10px;color:#aab4c4}
+.cap{margin:8px 0 0;font-size:13px;color:#aab4c4}
+@media (max-width:560px){.states{grid-template-columns:repeat(7,minmax(0,1fr))}}
+
+main .wrap{padding-block:24px 48px;display:grid;gap:16px}
+.game{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:18px;text-decoration:none;color:inherit;transition:border-color .2s,transform .2s}
+.game:hover{border-color:var(--ink);transform:translateY(-2px)}
+.game:focus-visible{outline:3px solid var(--buff);outline-offset:3px}
+.step{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-weight:600;font-size:20px;background:var(--page);border:2px solid var(--line)}
+.kind{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.game h2{margin:2px 0 4px;line-height:1.05}
+.g1 h2{font-family:var(--lunch);font-weight:900;text-transform:uppercase;font-size:34px;letter-spacing:.01em}
+.g1 h2 span{color:var(--locker);-webkit-text-stroke:.5px #8a6200}
+.g2 h2{font-family:var(--display);font-weight:400;font-size:36px}
+.game p{margin:0;color:var(--muted);max-width:58ch}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.meta span{font-size:13px;background:var(--page);border-radius:4px;padding:2px 8px}
+.go{font-weight:700;border-radius:10px;padding:12px 18px;white-space:nowrap}
+.g1 .go{background:var(--locker);color:#1b1606;box-shadow:0 3px 0 #b07e06}
+.g2 .go{background:var(--buff);color:#241a02;box-shadow:0 3px 0 var(--buff-dk)}
+.g2{border-color:var(--ink)}
+@media (max-width:640px){.game{grid-template-columns:auto minmax(0,1fr)}.go{grid-column:1/-1;text-align:center}.step{width:40px;height:40px;font-size:17px}}
+
+.note{background:var(--paper);border-left:5px solid var(--ink);border-radius:4px;padding:12px 14px;font-size:15px}
+.note b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+  <div class="eyebrow">Congress under the Articles of Confederation&nbsp;&middot; 1781&ndash;1787</div>
+  <h1>League of Friendship</h1>
+  <p class="lede">Thirteen states, one vote each. A bill needs nine of them. Can you pass laws when the people who count are states, not citizens?</p>
+  <div class="states" id="states" aria-label="Each state gets one equal box, but the number of people inside is very different"></div>
+  <p class="cap">Every state gets the same vote. Each dot is about 20,000 free people (1790 census).</p>
+</div></header>
+
+<main><div class="wrap">
+  <a class="game g1" href="lunchroom.html">
+    <span class="step">1</span>
+    <span>
+      <span class="kind">Optional warm-up</span>
+      <h2>Lunchroom <span>Congress</span></h2>
+      <p>Plan a dance, a trip, and a lunch change for one school. The students stay the same, but each round counts votes a new way: by student, by homeroom, by wing, then 3 of 4 grades.</p>
+      <span class="meta"><span>4 rounds</span><span>About 10 minutes</span></span>
+    </span>
+    <span class="go">Play warm-up</span>
+  </a>
+  <a class="game g2" href="league.html">
+    <span class="step">2</span>
+    <span>
+      <span class="kind">The main game&nbsp;&middot; 1784&ndash;1786</span>
+      <h2>League of Friendship</h2>
+      <p>Lead the Confederation Congress. Build bills, make deals, and win 9 of 13 states through two regular sessions and two crises with a ticking clock.</p>
+      <span class="meta"><span>4 rounds</span><span>2 timed crises</span><span>About 25 minutes</span></span>
+    </span>
+    <span class="go">Play</span>
+  </a>
+  <div class="note"><b>Suggested order</b>Play Lunchroom Congress first if students are new to vote counting. It teaches the same controls with a school everyone knows. Then move to League of Friendship.</div>
+</div></main>
+
+<script>
+const S=[['NH',7],['MA',19],['RI',3],['CT',12],['NY',16],['NJ',9],['PA',22],['DE',3],['MD',11],['VA',26],['NC',16],['SC',7],['GA',3]];
+document.getElementById('states').innerHTML=S.map(([a,n])=>`<div class="st"><div class="dots">${'<i></i>'.repeat(n)}</div><b>${a}</b><small>1 vote</small></div>`).join('');
+</script>
+
+</body>
+</html>

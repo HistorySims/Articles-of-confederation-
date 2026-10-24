@@ -1,0 +1,1327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>League of Friendship</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: the 13 states as equal-size tiles in three region bands (equal tiles = equal votes; the crowds inside show unequal populations). Bill builder on the right, sticky scoreboard on top: "people who like it" next to "states voting yes". Light theme only, by choice. */
+:root{
+  color-scheme:light;
+  --page:#e6eaee;
+  --paper:#fbfbf9;
+  --ink:#1a2740;
+  --muted:#56637a;
+  --line:#c8d0d9;
+  --buff:#e2b23a;
+  --buff-dk:#a87d12;
+  --yes:#1d8a5c;
+  --yes-soft:#d2ecdf;
+  --no:#c6452e;
+  --no-soft:#f5d7ce;
+  --split:#7d8796;
+  --ne:#dbe7ee;
+  --mid:#e4e2ee;
+  --south:#ece5d8;
+  --display:"Libre Caslon Display","Big Caslon","Book Antiqua",Georgia,serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--page)}
+body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--buff);outline-offset:2px}
+.wrap{max-width:1680px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.top{background:var(--ink);color:#fff}
+.top .wrap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:10px}
+.brand{font-family:var(--display);font-size:30px;line-height:1;letter-spacing:.01em}
+.brand-sub{font-size:13px;opacity:.75}
+.round-tag{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.85}
+
+/* Scoreboard */
+.score{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:2px solid var(--line)}
+.score .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) auto auto;gap:10px 22px;align-items:center;padding-block:10px}
+.meter{min-width:0}
+.meter-label{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.meter-num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);text-transform:none;letter-spacing:0;white-space:nowrap}
+.bar{position:relative;height:14px;border-radius:7px;background:var(--no-soft);margin-top:5px;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--yes);border-radius:7px;transition:width .5s ease}
+.bar .need{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--ink)}
+.pips{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-top:5px;transition:opacity .3s}
+.pips.stale{opacity:.45}
+.bar.hid{background:repeating-linear-gradient(135deg,#e9edf1 0 6px,#dde2e8 6px 12px)}
+.bar.hid .need{display:none}
+.pip.just{animation:pipIn .35s ease}
+@keyframes pipIn{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+.pip{height:18px;border-radius:3px;background:#e9edf1;color:var(--muted);font-family:var(--mono);font-size:9.5px;font-weight:600;display:grid;place-items:center;transition:background .3s,color .3s}
+.pip.y{background:var(--yes);color:#fff}
+.pip.n{background:var(--no-soft);color:var(--no)}
+.pip.s{background:var(--split);color:#fff}
+.clock{text-align:center;min-width:86px}
+.clock b{display:block;font-family:var(--mono);font-size:24px;font-variant-numeric:tabular-nums;line-height:1.05}
+.clock span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.clock.crisis{background:#fff1e8;border:2px solid var(--no);border-radius:8px;padding:4px 8px}
+.clock.crisis.low b{color:var(--no);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.call{background:var(--buff);color:#241a02;border:0;border-radius:10px;padding:12px 18px;font-weight:700;font-size:18px;box-shadow:0 3px 0 var(--buff-dk);white-space:nowrap}
+.call:active{transform:translateY(2px);box-shadow:0 1px 0 var(--buff-dk)}
+.call:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:820px){.score .wrap{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px}.meter-label{font-size:11px}.pips{grid-column:1/-1}.states-meter{grid-column:1/-1;order:3}.clock{order:2}.call{grid-column:1/-1;order:4;padding:10px;font-size:17px}.pip{font-size:8.5px}}
+
+/* Page layout */
+main .wrap{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr);gap:20px;padding-block:16px 40px;align-items:start}
+@media (max-width:1000px){main .wrap{grid-template-columns:1fr}}
+.col-states{min-width:0;container-type:inline-size;container-name:states}
+.mapcol{display:none}
+@media (min-width:1200px){
+  main .wrap{grid-template-columns:minmax(0,1fr) clamp(400px,38vw,640px) 330px;gap:16px}
+  .mapcol{display:block;position:sticky;top:calc(env(safe-area-inset-top,0px) + 92px);min-width:0}
+  .viewtabs,.view-map{display:none!important}
+}
+@media (max-width:1199.98px){
+  .views{position:relative;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;overscroll-behavior-x:contain;padding-bottom:6px;scrollbar-width:thin}
+  .view{flex:0 0 100%;min-width:0;scroll-snap-align:start}
+  .view-map{flex:0 0 auto;width:max(100%,640px)}
+}
+.viewtabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
+.viewtabs button{border:2px solid var(--line);background:var(--paper);border-radius:999px;padding:5px 12px;font-weight:700;font-size:14px;color:var(--muted)}
+.viewtabs button[aria-selected="true"]{border-color:var(--ink);color:var(--ink);background:#fff}
+.viewtabs .hint{font-size:13px;color:var(--muted)}
+
+/* Map */
+.mapcard{margin:0;background:var(--paper);border:2px solid var(--line);border-radius:10px;padding:10px 10px 8px}
+.mapcard figcaption{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap;margin:0 2px 6px}
+.mapcard figcaption b{font-family:var(--display);font-size:21px;line-height:1;font-weight:400}
+.mapcard figcaption small{color:var(--muted);font-size:13px}
+#map{display:block;width:100%;height:auto;border-radius:6px;background:#cfe3ee}
+#map .st{cursor:pointer;transition:fill .5s ease}
+#map .st.sel{stroke:#1a2740;stroke-width:1.6}
+#map .crowd{cursor:pointer}
+#map .crowd.sel .ccard{stroke-width:1.5}
+#map .mk{transition:transform .8s cubic-bezier(.45,.05,.3,1)}
+#map .pad-y{fill:#1d8a5c;fill-opacity:.16;stroke:#1d8a5c;stroke-opacity:.6;stroke-width:.6}
+#map .pad-m{fill:#fff;fill-opacity:.55;stroke:#8b7a5a;stroke-opacity:.6;stroke-width:.6;stroke-dasharray:2 1.5}
+#map .pad-n{fill:#c6452e;fill-opacity:.16;stroke:#c6452e;stroke-opacity:.6;stroke-width:.6}
+#map.idle .pad{opacity:.3}
+#map .halo{paint-order:stroke;stroke:#f7f2e4;stroke-width:2.4px;stroke-linejoin:round}
+#map .ml-st{font:700 10.5px var(--body);fill:#1a2740}
+#map .ml-sub{font:italic 7.5px var(--body);fill:#4a4535}
+#map .ml-region{font:700 8.5px var(--body);letter-spacing:.14em;fill:#6c6450}
+#map .ml-note{font:italic 7px var(--body);fill:#6c6450}
+#map .ml-water{font:italic 700 8.5px var(--body);letter-spacing:.16em;fill:#4f86a8}
+#map .ml-river{font:italic 7.5px var(--body);fill:#3f7aa3}
+#map .ml-call{font:700 8.5px var(--body);fill:#1a2740}
+#map .bdg text{font:700 7.5px var(--mono);fill:#fff}
+#map .hatch{opacity:.55}
+#map[data-round="lands"] .hatch{opacity:1}
+#map .ov{display:none}
+#map[data-round="river"] .gulf{display:none}
+#map[data-round="lands"] .ov-lands,#map[data-round="pirates"] .ov-pirates,#map[data-round="river"] .ov-river,#map[data-round="shays"] .ov-shays{display:inline}
+.mapkey{display:flex;gap:4px 12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:6px 2px 0}
+.mapkey span{display:inline-flex;align-items:center;gap:5px}
+.mapkey i{display:inline-block;width:14px;height:10px;border-radius:2px;border:1px solid rgba(26,39,64,.25)}
+.mapkey i.hz{background:repeating-linear-gradient(45deg,#f1eadb 0 2px,#cbbf9f 2px 3.4px)}
+
+.notice{background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:10px 14px;display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.notice .rule{font-family:var(--display);font-size:28px;line-height:1.05}
+.notice p{margin:4px 0 0;color:var(--muted);font-size:15px}
+.stamp{flex:none;font-family:var(--mono);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;background:var(--ink);color:#fff;padding:5px 8px;border-radius:3px;text-align:center;line-height:1.3}
+.stamp.crisis{background:var(--no)}
+.lockwarn{margin-bottom:12px;background:#fff1e8;border:2px solid var(--no);border-radius:6px;padding:8px 12px;font-size:15px}
+@media (max-width:520px){.notice{flex-direction:column;align-items:flex-start;gap:8px}.notice .rule{font-size:24px}}
+
+/* Board */
+.board{display:grid;gap:10px}
+.band{border-radius:10px;padding:8px 10px 10px}
+.band.NE{background:var(--ne)}.band.MID{background:var(--mid)}.band.SOUTH{background:var(--south)}
+.band-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 2px 6px}
+.band-head b{font-family:var(--display);font-size:21px;line-height:1}
+.band-head small{color:var(--muted);font-size:13px}
+.tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.state{flex:0 0 calc((100% - 32px)/5);min-width:0;background:var(--paper);border:2px solid var(--line);border-radius:8px;padding:0;text-align:left;overflow:hidden;transition:border-color .3s,box-shadow .2s}
+.state:hover{box-shadow:0 2px 10px -4px rgba(26,39,64,.4)}
+.state.sel{outline:3px solid var(--buff);outline-offset:1px}
+.state.vy{border-color:var(--yes)}
+.state.vn{border-color:var(--no)}
+.state.vs{border-color:var(--split)}
+.st-head{display:flex;align-items:center;gap:6px;padding:4px 6px 2px;min-height:26px}
+.st-head .nm{font-weight:700;font-size:13.5px;line-height:1.1;min-width:0}
+.st-head .ab{display:none;font-weight:700;font-size:13px}
+.badge{margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;padding:1px 5px;border-radius:3px;white-space:nowrap}
+.badge.y{background:var(--yes);color:#fff}
+.badge.n{background:var(--no);color:#fff}
+.badge.s{background:var(--split);color:#fff}
+.state svg{display:block;width:100%;height:auto}
+.st-foot{display:flex;justify-content:space-between;gap:4px;padding:2px 6px 4px;font-size:11.5px;color:var(--muted);min-height:20px}
+@container states (max-width:780px){.state{flex-basis:calc((100% - 24px)/4)}.st-head .nm{display:none}.st-head .ab{display:block}}
+@media (max-width:760px){.state{flex-basis:calc((100% - 16px)/3)}.st-head .nm{display:none}.st-head .ab{display:block}}
+
+.kid{transition:transform .8s cubic-bezier(.45,.05,.3,1)}
+.kid.hop .bod{animation:hop .8s ease}
+@keyframes hop{30%{transform:translateY(-4px)}60%{transform:translateY(0)}}
+
+.below{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;margin-top:12px;align-items:start}
+@media (max-width:700px){.below{grid-template-columns:1fr}}
+.legend{background:var(--paper);border-radius:8px;padding:10px 12px;font-size:14px;display:grid;gap:4px;border:1px solid var(--line)}
+.legend .t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.legend .row{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.legend .note{font-size:12.5px;color:var(--muted);white-space:normal;max-width:260px;margin-top:4px;line-height:1.35}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none}
+.otally{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto;padding-left:10px}
+.inspect{background:var(--paper);border-left:5px solid var(--buff);border-radius:4px;padding:10px 12px;font-size:15px;min-width:0}
+.inspect h3{margin:0 0 4px;font-size:17px}
+.inspect ul{margin:6px 0 0;padding-left:18px}
+.lk{color:var(--yes);font-weight:700}
+.dk{color:var(--no);font-weight:700}
+
+/* Bill sheet */
+.sheet{background:var(--paper);border-radius:10px;padding:14px;border:2px solid var(--line);position:sticky;top:calc(env(safe-area-inset-top,0px) + 92px);max-height:calc(100vh - 110px);overflow-y:auto}
+@media (max-width:1000px){.sheet{position:static;max-height:none}}
+h2.sec{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;color:var(--muted)}
+.topic{font-family:var(--display);font-size:30px;line-height:1.05;margin:0 0 4px;text-wrap:balance}
+.topic-sub{margin:0 0 10px;color:var(--muted)}
+.opts{display:grid;gap:8px;margin-bottom:14px}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;border:2px solid var(--line);border-radius:8px;background:#fff;padding:10px;width:100%}
+.opt[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 6px 0 0 var(--buff)}
+.opt.locked{border-style:dashed;border-color:var(--no)}
+.opt.locked[aria-pressed="true"]{border-style:solid;box-shadow:inset 6px 0 0 var(--no)}
+.box{flex:none;width:22px;height:22px;border:2px solid var(--ink);border-radius:50%;display:grid;place-items:center;margin-top:1px}
+.deal .box{border-radius:5px}
+.opt[aria-pressed="true"] .box::after{content:"";width:10px;height:10px;background:var(--ink);border-radius:inherit}
+.deal[aria-pressed="true"] .box{background:var(--ink)}
+.deal[aria-pressed="true"] .box::after{width:10px;height:6px;border:solid #fff;border-width:0 0 3px 3px;background:none;border-radius:0;transform:rotate(-45deg) translate(1px,-1px)}
+.opt .body{min-width:0;flex:1}
+.opt b.nm{font-size:16px}
+.lockline{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:700;color:var(--no);margin-top:3px}
+.fx{list-style:none;margin:6px 0 0;padding:0;font-size:14px;line-height:1.35;display:grid;gap:2px}
+.fx li{display:flex;gap:6px}
+.fx .p{color:var(--yes);font-weight:700;flex:none;width:12px}
+.fx .m{color:var(--no);font-weight:700;flex:none;width:12px}
+.fx b{font-size:14px}
+.reset{background:none;border:0;color:var(--muted);text-decoration:underline;padding:4px 0;font-size:14px}
+.cost-note{font-size:13px;color:var(--no);font-weight:700;margin:-6px 0 10px}
+
+/* Overlays */
+.veil{position:fixed;inset:0;z-index:20;background:rgba(14,20,34,.58);display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
+.card{background:var(--paper);border-radius:12px;max-width:620px;width:100%;padding:22px;box-shadow:0 20px 50px -20px rgba(0,0,0,.6)}
+.card.wide{max-width:820px}
+.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.eyebrow.crisis{color:var(--no)}
+.card h2{font-family:var(--display);font-size:40px;line-height:1.02;margin:6px 0 10px;text-wrap:balance;font-weight:400}
+.card p{margin:0 0 10px}
+.card ol.how{margin:6px 0 12px;padding-left:22px}
+.card ol.how li{margin-bottom:4px}
+.big{font-size:18px}
+.rulebox{border:2px solid var(--ink);border-radius:6px;padding:10px 12px;margin:12px 0}
+.rulebox.crisis{border-color:var(--no);background:#fff6f1}
+.rulebox b{display:block;font-size:17px;margin-bottom:2px}
+.verdict{font-family:var(--display);font-size:60px;line-height:.95;margin:4px 0 10px}
+.verdict.y{color:var(--yes)}
+.verdict.n{color:var(--no)}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.compare div{background:var(--page);border-radius:8px;padding:10px}
+.compare b{display:block;font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.compare span{font-size:13px;color:var(--muted)}
+.history{background:#f1efe6;border-left:5px solid var(--ink);border-radius:4px;padding:10px 12px;margin:12px 0;font-size:15px}
+.history b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btn{border:2px solid var(--ink);background:var(--paper);border-radius:8px;padding:10px 16px;font-weight:700}
+.btn.go{background:var(--buff);border-color:var(--buff);color:#241a02}
+.tablewrap{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:600px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ok{color:var(--yes);font-weight:700}.bad{color:var(--no);font-weight:700}
+ol.q{padding-left:20px;margin:6px 0}
+ol.q li{margin-bottom:6px}
+/* reactions */
+.stream{position:fixed;right:max(4px,env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));width:52px;height:min(60vh,520px);pointer-events:none;z-index:6}
+.stream span{position:absolute;bottom:0;left:50%;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;animation:streamUp 4.2s linear both}
+@keyframes streamUp{0%{opacity:0;transform:translate(-50%,0) scale(.4)}8%{opacity:1;transform:translate(calc(-50% + var(--dx)*.15),-12px) scale(1)}75%{opacity:.9}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(var(--h)*-1)) scale(1.08)}}
+.stream .sum{position:absolute;bottom:0;right:0;left:auto;white-space:nowrap;background:var(--paper);border:2px solid var(--line);border-radius:999px;padding:4px 10px;font:700 15px var(--body);animation:none}
+.emo{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;text-anchor:middle;pointer-events:none;transform-box:fill-box;transform-origin:center;animation:emoFloat 3.2s ease-out both}
+@keyframes emoFloat{0%{opacity:0;transform:translate(0,0) scale(.5)}14%{opacity:1;transform:translate(calc(var(--dx)*.25),calc(var(--rise)*-.18)) scale(1)}100%{opacity:0;transform:translate(var(--dx),calc(var(--rise)*-1)) scale(1.05)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.home{color:inherit;text-decoration:none;font-size:14px;font-weight:700;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:4px 10px;white-space:nowrap}.home:hover{background:rgba(255,255,255,.12)}.home:focus-visible{outline:3px solid #f0b11c;outline-offset:2px}</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="home" href="index.html">&larr; Menu</a>
+  <div class="brand">League of Friendship</div>
+  <div class="brand-sub">Congress under the Articles of Confederation</div>
+  <div class="round-tag" id="roundTag">Round 1 of 4</div>
+</div></header>
+
+<section class="score" aria-label="Scoreboard"><div class="wrap">
+  <div class="meter">
+    <div class="meter-label"><span id="popLbl">People who like it</span><span class="meter-num" id="popNum">–</span></div>
+    <div class="bar" id="popBarWrap"><i id="popBar" style="width:0"></i><span class="need"></span></div>
+  </div>
+  <div class="meter states-meter">
+    <div class="meter-label"><span id="stLbl">States voting yes</span><span class="meter-num" id="stNum">–</span></div>
+    <div class="pips" id="pips"></div>
+  </div>
+  <div class="clock" id="clock"><b id="clockNum">–</b><span id="clockLbl">no deadline</span></div>
+  <button class="call" id="callBtn" disabled>Call the vote</button>
+</div></section>
+
+<main><div class="wrap">
+  <section class="col-states" aria-label="The thirteen states">
+    <div class="notice">
+      <div class="stamp" id="stamp">Regular<br>business</div>
+      <div><div class="rule" id="ruleTitle"></div><p id="ruleText"></p></div>
+    </div>
+    <div class="lockwarn" id="lockWarn" hidden><b>Your bill has a tax in it.</b> A tax changes the Articles of Confederation, so all 13 states must vote yes.</div>
+    <div class="viewtabs" role="tablist" aria-label="Choose a view">
+      <button role="tab" id="tabStates" data-view="states" aria-selected="true">13 states</button>
+      <button role="tab" id="tabMap" data-view="map" aria-selected="false">Map of the nation</button>
+      <span class="hint">or swipe sideways</span>
+    </div>
+    <div class="views" id="views">
+      <div class="view view-states" id="viewStates"><div class="board" id="board"></div></div>
+      <div class="view view-map" id="viewMap">
+        <figure class="mapcard" id="mapCard">
+          <figcaption><b>The nation</b><small>The same people in their states: yes pad, not-sure pad, no pad. States are shaded after a vote.</small></figcaption>
+          <svg id="map" role="img" aria-label="Map of the thirteen states. Each state's people stand on a yes pad or a no pad, and each state is shaded by how it votes."></svg>
+          <div class="mapkey"><span><i style="background:#c7e6d2"></i>Voted yes</span><span><i style="background:#f1cabd"></i>Voted no</span><span><i style="background:#d9dde5"></i>Tie: vote doesn't count</span><span><i class="hz"></i>Western lands</span></div>
+        </figure>
+      </div>
+    </div>
+    <div class="below">
+      <div class="legend" id="legend"></div>
+      <div class="inspect" id="inspect"></div>
+    </div>
+  </section>
+
+  <aside class="mapcol" id="mapCol" aria-label="Map"></aside>
+
+  <section class="sheet" aria-label="Your bill">
+    <h2 class="sec">Your bill</h2>
+    <p class="topic" id="topic"></p>
+    <p class="topic-sub" id="topicSub"></p>
+    <div class="opts" id="cores" role="radiogroup"></div>
+    <h2 class="sec">Add deals</h2>
+    <p class="topic-sub">Every deal wins some people and loses others.</p>
+    <p class="cost-note" id="costNote" hidden>Crisis: every change costs one day. Clearing your bill is free.</p>
+    <div class="opts" id="deals"></div>
+    <button class="reset" id="resetBtn">Clear my bill</button>
+  </section>
+</div></main>
+
+<div class="stream" id="stream" aria-hidden="true"></div>
+<div class="veil" id="veil" hidden><div class="card" id="card" role="dialog" aria-modal="true"></div></div>
+
+<script>
+const PARAMS={
+ "seed": 53,
+ "deals": [
+  {
+   "id": "small",
+   "name": "Small states pay less",
+   "fx": [
+    [
+     "SMALL",
+     3,
+     "they pay less to Congress, so state taxes go down"
+    ],
+    [
+     "BIG",
+     -1,
+     "they pay the difference"
+    ]
+   ]
+  },
+  {
+   "id": "south",
+   "name": "Southern states pay less",
+   "fx": [
+    [
+     "SOUTH",
+     2,
+     "the British army wrecked Southern farms and towns in the war"
+    ],
+    [
+     "NE",
+     -1,
+     "they fought hard too, and now they pay more"
+    ],
+    [
+     "MID",
+     -1,
+     "they pay more"
+    ]
+   ]
+  },
+  {
+   "id": "veterans",
+   "name": "Free western land for veterans",
+   "fx": [
+    [
+     "F",
+     1,
+     "many farmers fought in the war"
+    ],
+    [
+     "W",
+     3,
+     "more neighbors and new roads out West"
+    ],
+    [
+     "M",
+     -2,
+     "Congress planned to sell that land to pay back their war bonds"
+    ]
+   ]
+  },
+  {
+   "id": "bonds",
+   "name": "Pay the war bonds first",
+   "fx": [
+    [
+     "M",
+     3,
+     "they lent money for the war and own most of the bonds"
+    ],
+    [
+     "F",
+     -1,
+     "states raise taxes to pay the bonds"
+    ],
+    [
+     "W",
+     -1,
+     "states raise taxes to pay the bonds"
+    ]
+   ]
+  },
+  {
+   "id": "newstates",
+   "name": "Let the West become new states",
+   "fx": [
+    [
+     "W",
+     3,
+     "they get their own state governments"
+    ],
+    [
+     "NE",
+     -2,
+     "new Western states could outvote New England"
+    ]
+   ]
+  },
+  {
+   "id": "newyork",
+   "name": "Move Congress to New York City",
+   "fx": [
+    [
+     "NY",
+     2,
+     "business and jobs for the city"
+    ],
+    [
+     "NJ",
+     2,
+     "it's right next door"
+    ],
+    [
+     "PA",
+     -3,
+     "Philadelphia wants Congress back"
+    ]
+   ]
+  },
+  {
+   "id": "fishing",
+   "name": "Help New England fishermen",
+   "fx": [
+    [
+     "S",
+     3,
+     "help to compete with British fishing boats"
+    ],
+    [
+     "NE",
+     1,
+     "busy ports mean jobs"
+    ],
+    [
+     "P",
+     -2,
+     "their taxes pay for Northern boats"
+    ]
+   ]
+  },
+  {
+   "id": "impost",
+   "name": "A national tax on imports",
+   "fx": [
+    [
+     "C",
+     4,
+     "foreign goods cost more, so people buy theirs"
+    ],
+    [
+     "NJ",
+     3,
+     "they stop paying New York's import taxes"
+    ],
+    [
+     "M",
+     1,
+     "Congress can finally pay back their war bonds"
+    ],
+    [
+     "RI",
+     -6,
+     "Rhode Island loses its own tax on ships coming into Newport"
+    ],
+    [
+     "P",
+     -2,
+     "the things they buy cost more"
+    ],
+    [
+     "F",
+     -1,
+     "prices go up"
+    ]
+   ],
+   "locked": true
+  }
+ ],
+ "rounds": [
+  {
+   "id": "lands",
+   "kind": "regular",
+   "title": "The Western Lands",
+   "year": "1784",
+   "question": "Who gets the land west of the mountains?",
+   "goal": "Pass a bill about the western lands. You need 9 of 13 states.",
+   "intro": [
+    "It is 1784. The war with Britain is over. You lead the Confederation Congress, the national government under the Articles of Confederation.",
+    "Seven states claim land west of the Appalachian Mountains. Six states claim none. Who should get that land?"
+   ],
+   "tag": {
+    "group": "LANDED",
+    "text": "Western land"
+   },
+   "history": "The states with land claims gave them to the nation one at a time, from 1781 to 1802. Congress sold the land to pay its debts and made rules for turning it into new states.",
+   "cores": [
+    {
+     "id": "keep",
+     "name": "States keep their western lands",
+     "fx": [
+      [
+       "LANDED",
+       2,
+       "their state can sell the land and keep taxes low"
+      ],
+      [
+       "LANDLESS",
+       -3,
+       "the big states get richer, and they get nothing"
+      ]
+     ]
+    },
+    {
+     "id": "nation",
+     "name": "The western lands belong to the whole country",
+     "fx": [
+      [
+       "LANDLESS",
+       3,
+       "every state shares the money from land sales"
+      ],
+      [
+       "LANDED",
+       -2,
+       "they lose land their state claimed"
+      ],
+      [
+       "W",
+       1,
+       "the land opens to settlers from every state"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pirates",
+   "kind": "crisis",
+   "title": "Pirates!",
+   "year": "1785",
+   "question": "How should Congress free the sailors?",
+   "goal": "Pass a bill before time runs out. You need 9 of 13 states.",
+   "days": 8,
+   "intro": [
+    "It is 1785. Pirates from Algiers, in North Africa, have captured two American ships. The sailors are now prisoners. They stay in prison until someone pays.",
+    "Congress has no money of its own. It can only ask the states to pay."
+   ],
+   "history": "Congress could not raise the money for a ransom or for warships. The sailors stayed prisoners in Algiers until 1796, eleven years later.",
+   "cores": [
+    {
+     "id": "ransom",
+     "name": "Pay a ransom to free the sailors",
+     "fx": [
+      [
+       "M",
+       2,
+       "their ships and sailors come home"
+      ],
+      [
+       "S",
+       4,
+       "fishing crews feel safer at sea"
+      ],
+      [
+       "NE",
+       1,
+       "their towns send the most ships to sea"
+      ],
+      [
+       "F",
+       -2,
+       "states raise taxes to pay"
+      ],
+      [
+       "P",
+       -1,
+       "states raise taxes to pay"
+      ],
+      [
+       "W",
+       -3,
+       "the pirates are far away, so why pay?"
+      ]
+     ]
+    },
+    {
+     "id": "navy",
+     "name": "Build warships to fight the pirates",
+     "fx": [
+      [
+       "M",
+       3,
+       "warships protect all their ships"
+      ],
+      [
+       "C",
+       4,
+       "jobs building ships"
+      ],
+      [
+       "S",
+       4,
+       "safer seas"
+      ],
+      [
+       "NE",
+       1,
+       "busy shipyards in their towns"
+      ],
+      [
+       "F",
+       -1,
+       "a big tax increase"
+      ],
+      [
+       "P",
+       -1,
+       "a big tax increase"
+      ],
+      [
+       "W",
+       -3,
+       "the pirates are far away, so why pay?"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "river",
+   "kind": "regular",
+   "title": "Spain and the Mississippi",
+   "year": "1786",
+   "question": "Should America give up the Mississippi River for Spain's business?",
+   "goal": "Pass a bill about Spain's offer. You need 9 of 13 states.",
+   "intro": [
+    "It is 1786. Spain controls New Orleans, at the mouth of the Mississippi River. Spain makes an offer: it will buy American fish and flour, but Americans must stop using the Mississippi for 25 years.",
+    "Frontier settlers in Kentucky and Tennessee float their crops down the Mississippi to sell them. Northern merchants want to sell to Spain."
+   ],
+   "history": "Seven Northern states voted for Spain's deal. Five Southern states voted no. Seven is not nine, so there was no deal.",
+   "cores": [
+    {
+     "id": "deal",
+     "name": "Take Spain's deal: trade the river for business",
+     "fx": [
+      [
+       "NORTH",
+       2,
+       "Spain buys flour and goods from Northern ports"
+      ],
+      [
+       "SOUTH",
+       -3,
+       "the South will need the river someday"
+      ],
+      [
+       "W",
+       -5,
+       "they need the river to sell their crops"
+      ],
+      [
+       "M",
+       2,
+       "Spain buys their goods"
+      ],
+      [
+       "S",
+       1,
+       "Spain buys their fish"
+      ]
+     ]
+    },
+    {
+     "id": "open",
+     "name": "Say no: keep the Mississippi open",
+     "fx": [
+      [
+       "SOUTH",
+       2,
+       "the South will need the river someday"
+      ],
+      [
+       "W",
+       4,
+       "their crops float down to New Orleans"
+      ],
+      [
+       "M",
+       -2,
+       "they lose Spain's business"
+      ],
+      [
+       "S",
+       -2,
+       "they lose Spain's fish market"
+      ],
+      [
+       "NORTH",
+       -1,
+       "Northern ports lose Spain's business"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "shays",
+   "kind": "crisis",
+   "title": "Rebellion in Massachusetts",
+   "year": "1786",
+   "question": "How should Congress protect Springfield?",
+   "goal": "Pass a bill before time runs out. You need 9 of 13 states.",
+   "days": 8,
+   "intro": [
+    "Late 1786. Farmers in western Massachusetts owe taxes and debts they cannot pay. Courts are taking their farms. Armed farmers led by Daniel Shays are closing the courts.",
+    "Now they are marching toward Springfield, where the national government keeps its weapons."
+   ],
+   "history": "Congress voted to raise soldiers, but the states sent almost no money. Rich Boston merchants paid for a Massachusetts army, and state militia stopped the rebels at Springfield in January 1787.",
+   "cores": [
+    {
+     "id": "army",
+     "name": "Send a national army to guard Springfield",
+     "fx": [
+      [
+       "M",
+       3,
+       "protect property and collect debts"
+      ],
+      [
+       "P",
+       3,
+       "they fear rebellions could spread"
+      ],
+      [
+       "F",
+       -1,
+       "they don't want to pay to fight farmers like them"
+      ],
+      [
+       "W",
+       -1,
+       "they don't want to pay for it"
+      ]
+     ]
+    },
+    {
+     "id": "paymass",
+     "name": "Pay Massachusetts to raise its own army",
+     "fx": [
+      [
+       "MA",
+       4,
+       "help comes fast, and Congress pays"
+      ],
+      [
+       "M",
+       2,
+       "protect property and collect debts"
+      ],
+      [
+       "P",
+       2,
+       "they fear rebellions could spread"
+      ],
+      [
+       "F",
+       -2,
+       "they don't want to pay to fight farmers like them"
+      ],
+      [
+       "SOUTH",
+       -1,
+       "why should the South pay for Massachusetts?"
+      ],
+      [
+       "W",
+       -2,
+       "they don't want to pay for it"
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+};
+
+// ================= The country (1790 census, the first count) =================
+const OCC={F:{name:'Farmers',color:'#7a4e2a'},P:{name:'Planters',color:'#7d4fb5'},M:{name:'Merchants',color:'#22447a'},C:{name:'Craftsmen',color:'#e8862a'},S:{name:'Fishermen',color:'#2b9bc9'},W:{name:'Frontier settlers',color:'#b39a14'}};
+// [abbr, name, region, people per occupation (1 figure = about 20,000 free people), claims western land, free population label]
+const STATES=[
+ ['NH','New Hampshire','NE',{F:5,S:1,M:1},0,'about 140,000 free people'],
+ ['MA','Massachusetts','NE',{F:10,S:3,M:3,C:3},1,'about 380,000 free people'],
+ ['RI','Rhode Island','NE',{F:1,M:1,S:1},0,'about 68,000 free people'],
+ ['CT','Connecticut','NE',{F:8,M:2,C:1,S:1},1,'about 235,000 free people'],
+ ['NY','New York','MID',{F:9,M:3,C:2,W:2},1,'about 320,000 free people'],
+ ['NJ','New Jersey','MID',{F:7,C:2},0,'about 170,000 free people'],
+ ['PA','Pennsylvania','MID',{F:11,M:3,C:4,W:4},0,'about 430,000 free people'],
+ ['DE','Delaware','MID',{F:2,C:1},0,'about 50,000 free people'],
+ ['MD','Maryland','SOUTH',{F:5,P:3,M:2,C:1},0,'about 215,000 free people'],
+ ['VA','Virginia','SOUTH',{F:12,P:6,W:7,M:1},1,'about 515,000 free people, counting Kentucky'],
+ ['NC','North Carolina','SOUTH',{F:10,P:3,W:3},1,'about 325,000 free people, counting Tennessee'],
+ ['SC','South Carolina','SOUTH',{P:3,F:2,M:2},1,'about 140,000 free people'],
+ ['GA','Georgia','SOUTH',{P:1,F:1,W:1},1,'about 53,000 free people'],
+];
+const REGIONS={NE:{name:'New England',sub:'Small farms, fishing, and busy ports like Boston and Newport'},MID:{name:'Middle States',sub:'Wheat farms, workshops, and the big ports of New York and Philadelphia'},SOUTH:{name:'Southern States',sub:'Farms, large plantations, and the frontier in Kentucky and Tennessee'}};
+const GROUPS={NORTH:['NH','MA','RI','CT','NY','NJ','PA','DE'],SMALL:['NH','RI','NJ','DE','GA'],BIG:['MA','NY','PA','VA','NC'],
+ LANDED:STATES.filter(s=>s[4]).map(s=>s[0]),LANDLESS:STATES.filter(s=>!s[4]).map(s=>s[0])};
+const SELNAME={F:'Farmers',P:'Planters',M:'Merchants',C:'Craftsmen',S:'Fishermen',W:'Frontier settlers',
+ NE:'New England',MID:'Middle states',SOUTH:'Southern states',NORTH:'Northern states',
+ SMALL:'Small states (NH, RI, NJ, DE, GA)',BIG:'Big states (MA, NY, PA, VA, NC)',LANDED:'States with western land',LANDLESS:'States with no western land'};
+STATES.forEach(s=>SELNAME[s[0]]=s[1]);
+const stName=a=>STATES.find(s=>s[0]===a)[1];
+
+// ================= People (seeded: every class sees the same country) =================
+let seed=PARAMS.seed;const rnd=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648};
+const KEYS=[...PARAMS.deals.map(d=>d.id),...PARAMS.rounds.flatMap(r=>r.cores.map(c=>c.id))];
+const PEOPLE=[];
+STATES.forEach(([st,,region,mix])=>{const n=Object.values(mix).reduce((a,b)=>a+b,0);let i=0;
+  for(const occ in mix)for(let k=0;k<mix[occ];k++){const c={st,region,occ,slot:i,noise:{},delay:(PEOPLE.length*97)%300};KEYS.forEach(key=>{const r=rnd();c.noise[key]=r<.06?-2:r<.2?-1:r>.94?2:r>.8?1:0});PEOPLE.push(c);i++}
+  // a few people in every state strongly disagree with their neighbors about the main choice
+  const idx=PEOPLE.map((c,j)=>j).filter(j=>PEOPLE[j].st===st);const nf=Math.max(1,Math.round(n*.13));
+  for(let f=0;f<nf;f++)PEOPLE[idx[Math.floor((f+.5)*n/nf)]].flip=true;});
+const N=PEOPLE.length;
+const matches=(sel,c)=>sel===c.occ||sel===c.st||sel===c.region||(GROUPS[sel]&&GROUPS[sel].includes(c.st));
+const baseAmt=(it,c)=>it.fx.reduce((a,[sel,v])=>a+(matches(sel,c)?v:0),0);
+
+// ================= State of play =================
+let R=0,core=null,deals=new Set(),days=null,votesTaken=0,sel=null,prev=null,busy=false;
+// the count stays hidden until a vote; `last` holds the most recent roll call, `stale` turns on when the bill changes after it
+let last=null,stale=false,reveal=13;
+const history=[];
+const ROUND=()=>PARAMS.rounds[R];
+const allItems=()=>[...ROUND().cores,...PARAMS.deals];
+const item=id=>allItems().find(x=>x.id===id);
+const bill=()=>core?[core,...deals]:[];
+const nm=it=>it.id==='newyork'&&R>0?'Keep Congress in New York City':it.name;
+const hasLock=()=>[...deals].some(id=>item(id).locked);
+const need=()=>hasLock()?13:9;
+// A few people in every state disagree with their neighbors about the main choice.
+const coreVal=(c,it)=>{let v=baseAmt(it,c);if(c.flip)v=v>0?-Math.max(2,v):v<0?Math.max(2,-v):0;return v+c.noise[it.id]};
+// If the main choice alone would leave a state unanimous, its most lukewarm person leans the other way.
+// A good deal can still win that person back.
+const HOLD={};
+function holdouts(it){const h=new Map();
+  STATES.forEach(([st])=>{const idx=PEOPLE.map((c,i)=>i).filter(i=>PEOPLE[i].st===st);const sc=idx.map(i=>coreVal(PEOPLE[i],it));const ny=sc.filter(v=>v>0).length;
+    if(ny===0||ny===idx.length){let b=0;sc.forEach((v,j)=>{if(Math.abs(v)<Math.abs(sc[b]))b=j});h.set(idx[b],ny?-(sc[b]+2):(-sc[b]+2))}});
+  return h}
+function scoreOf(c,i){
+  const it=item(core),key=ROUND().id+core;if(!HOLD[key])HOLD[key]=holdouts(it);
+  let a=coreVal(c,it)+(HOLD[key].get(i)||0);
+  deals.forEach(id=>{a+=baseAmt(item(id),c)+c.noise[id]});return a;
+}
+
+// where a person stands: clearly for (YES), clearly against (NO), or in the middle (not sure).
+// Votes still split at zero, so the middle hides which way people will really go.
+const zoneOf=v=>v===null?'u':v>=2?'y':v<=-2?'n':'m';
+function scores(){return core?PEOPLE.map((c,i)=>scoreOf(c,i)):null}
+
+function tally(){
+  const yes=core?PEOPLE.map((c,i)=>scoreOf(c,i)>0):PEOPLE.map(()=>null);
+  const pop=yes.filter(Boolean).length;
+  const by={};STATES.forEach(s=>by[s[0]]={y:0,n:0});
+  PEOPLE.forEach((c,i)=>{yes[i]?by[c.st].y++:by[c.st].n++});
+  const verdict={};let sy=0;
+  for(const s in by){const v=by[s];verdict[s]=!core?null:v.y>v.n?'y':v.y<v.n?'n':'s';if(verdict[s]==='y')sy++}
+  const occ={};Object.keys(OCC).forEach(o=>occ[o]={y:0,n:0});PEOPLE.forEach((c,i)=>{yes[i]?occ[c.occ].y++:occ[c.occ].n++});
+  return {yes,pop,by,verdict,sy,occ,pass:!!core&&sy>=need(),popPass:pop>N/2};
+}
+
+// ================= Drawing =================
+const NS='http://www.w3.org/2000/svg';
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent&&parent.appendChild(e);return e};
+const W=200,H=104,FLOOR=96;
+const SVG={},KIDS=[];
+const SIZE={},STIDX={};STATES.forEach((s,i)=>{SIZE[s[0]]=Object.values(s[3]).reduce((a,b)=>a+b,0);STIDX[s[0]]=i});
+const SKIN=['#8d5a3b','#c48a62','#e8b98f','#5e3a26','#a86f4c','#d7a47c'];
+
+function buildBoard(){
+  const board=document.getElementById('board');
+  ['NE','MID','SOUTH'].forEach(rg=>{
+    const band=document.createElement('div');band.className='band '+rg;
+    band.innerHTML=`<div class="band-head"><b>${REGIONS[rg].name}</b><small>${REGIONS[rg].sub}</small></div><div class="tiles"></div>`;
+    const tiles=band.querySelector('.tiles');
+    STATES.filter(s=>s[2]===rg).forEach(([ab,name,,mix])=>{
+      const n=Object.values(mix).reduce((a,b)=>a+b,0);
+      const b=document.createElement('button');b.className='state';b.dataset.st=ab;b.setAttribute('aria-label',`${name}, ${n} figures`);
+      b.innerHTML=`<span class="st-head"><span class="nm">${name}</span><span class="ab">${ab}</span><span class="badge" id="bd-${ab}"></span></span><svg viewBox="0 0 ${W} ${H}" aria-hidden="true"></svg><span class="st-foot"><span id="ct-${ab}">${n} figures</span></span>`;
+      tiles.appendChild(b);
+      const s=b.querySelector('svg');SVG[ab]=s;drawScene(s);
+      const tg=el('g',{id:'tg-'+ab,style:'display:none'},s);
+      el('rect',{x:50,y:4,width:100,height:18,rx:3,fill:'#1a2740'},tg);
+      el('text',{x:100,y:17,'text-anchor':'middle','font-family':'Atkinson Hyperlegible,system-ui,sans-serif','font-weight':700,'font-size':11.5,fill:'#fff'},tg).textContent='';
+    });
+    board.appendChild(band);
+  });
+  PEOPLE.forEach((c,i)=>{
+    const k=el('g',{class:'kid'},SVG[c.st]);const b=el('g',{class:'bod'},k);
+    el('rect',{x:.5,y:8,width:8,height:9,rx:2.5,fill:OCC[c.occ].color},b);
+    el('rect',{x:1.6,y:16.5,width:2.3,height:3.5,fill:'#39424e'},b);
+    el('rect',{x:5.1,y:16.5,width:2.3,height:3.5,fill:'#39424e'},b);
+    el('circle',{cx:4.5,cy:4.3,r:3.6,fill:SKIN[i%SKIN.length]},b);
+    k.style.transitionDelay=c.delay+'ms';KIDS[i]=k;
+  });
+  document.getElementById('pips').innerHTML=STATES.map(s=>`<span class="pip" id="pp-${s[0]}">${s[0]}</span>`).join('');
+}
+function drawScene(s){
+  el('rect',{x:0,y:0,width:W,height:FLOOR,fill:'#f3f5f7'},s);
+  el('rect',{x:0,y:24,width:67,height:FLOOR-24,fill:'#1d8a5c',opacity:.09},s);
+  el('rect',{x:133,y:24,width:67,height:FLOOR-24,fill:'#c6452e',opacity:.09},s);
+  // the state house in the middle
+  const g=el('g',{fill:'#d5dbe2'},s);
+  el('rect',{x:88,y:60,width:24,height:36},g);el('path',{d:'M85 61L100 50L115 61Z'},g);
+  el('rect',{x:96,y:41,width:8,height:10},g);el('path',{d:'M95 42Q100 33 105 42Z'},g);
+  el('rect',{x:97,y:74,width:6,height:22,fill:'#c2cad3'},g);
+  // pennants
+  el('path',{d:'M6 6h34l-7 8l7 8h-34z',fill:'#1d8a5c'},s);
+  el('text',{x:10,y:18,'font-family':'Atkinson Hyperlegible,system-ui,sans-serif','font-weight':700,'font-size':11,fill:'#fff'},s).textContent='YES';
+  el('path',{d:`M${W-6} 6h-34l7 8l-7 8h34z`,fill:'#c6452e'},s);
+  el('text',{x:W-28,y:18,'font-family':'Atkinson Hyperlegible,system-ui,sans-serif','font-weight':700,'font-size':11,fill:'#fff'},s).textContent='NO';
+  el('rect',{x:0,y:FLOOR,width:W,height:H-FLOOR,fill:'#c9b48a'},s);
+}
+function slotXY(c,zone){
+  const n=SIZE[c.st],per=6,rows=Math.ceil(n/per),r=Math.floor(c.slot/per),col=c.slot%per;
+  const x0=zone==='y'?3:zone==='n'?135:69;
+  return [x0+col*10.4,FLOOR-20-(rows-1-r)*13];
+}
+
+// ================= Render =================
+const $=id=>document.getElementById(id);
+const strength=v=>Math.abs(v)<=1?' (a little)':Math.abs(v)>=4?' (a lot)':'';
+function fxList(it){return `<ul class="fx">${it.fx.filter(f=>f[1]).map(([s,v,why])=>`<li><span class="${v>0?'p':'m'}">${v>0?'+':'−'}</span><span><b>${SELNAME[s]}</b>${strength(v)}: ${why}</span></li>`).join('')}</ul>`}
+
+function buildRound(){
+  const r=ROUND();
+  $('roundTag').textContent=`Round ${R+1} of ${PARAMS.rounds.length} · ${r.year}`;
+  const crisis=r.kind==='crisis';
+  $('stamp').innerHTML=crisis?'Crisis!':'Regular<br>business';$('stamp').classList.toggle('crisis',crisis);
+  $('ruleTitle').textContent=r.title;$('ruleText').textContent=r.goal;
+  $('topic').textContent=r.title;$('topicSub').textContent=r.question;
+  $('costNote').hidden=!crisis;
+  $('cores').innerHTML=r.cores.map(c=>`<button class="opt core" role="radio" data-core="${c.id}" aria-pressed="false" aria-checked="false"><span class="box"></span><span class="body"><b class="nm">${c.name}</b>${fxList(c)}</span></button>`).join('');
+  $('deals').innerHTML=PARAMS.deals.map(d=>`<button class="opt deal${d.locked?' locked':''}" data-deal="${d.id}" aria-pressed="false"><span class="box"></span><span class="body"><b class="nm">${nm(d)}</b>${d.locked?`<span class="lockline">&#128274; Changes the Articles: needs all 13 states</span>`:''}${fxList(d)}</span></button>`).join('');
+  STATES.forEach(([ab])=>{const t=$('tg-'+ab);const tag=r.tag&&GROUPS[r.tag.group].includes(ab);t.style.display=tag?'':'none';if(tag)t.querySelector('text').textContent=r.tag.text.toUpperCase()});
+  days=crisis?r.days:null;votesTaken=0;prev=null;last=null;stale=false;reveal=STATES.length;
+  $('map').dataset.round=r.id;
+  render();
+}
+
+function render(){
+  const r=ROUND(),sc=scores(),zones=PEOPLE.map((c,i)=>zoneOf(sc?sc[i]:null));
+  document.querySelectorAll('[data-core]').forEach(b=>{const on=b.dataset.core===core;b.setAttribute('aria-pressed',on);b.setAttribute('aria-checked',on)});
+  document.querySelectorAll('[data-deal]').forEach(b=>b.setAttribute('aria-pressed',deals.has(b.dataset.deal)));
+  PEOPLE.forEach((c,i)=>{const z=zones[i],[x,y]=slotXY(c,z);
+    KIDS[i].style.transform=`translate(${x}px,${y}px)`;
+    if(prev&&prev[i]!==z){const k=KIDS[i];k.classList.remove('hop');void k.getBoundingClientRect();k.classList.add('hop')}});
+  prev=zones;
+  // verdicts appear only during and right after a roll call
+  STATES.forEach(([ab],idx)=>{const v=shownVerdict(ab),b=$('bd-'+ab),tile=b.closest('.state'),p=$('pp-'+ab);
+    tile.classList.remove('vy','vn','vs');
+    const pv=last&&idx<reveal?last.verdict[ab]:null,was=p.dataset.v||'';
+    p.className='pip'+(pv?' '+pv:'')+(pv&&was!==pv&&reveal<STATES.length?' just':'');p.dataset.v=pv||'';
+    if(!v){b.className='badge';b.textContent='';$('ct-'+ab).textContent=`${SIZE[ab]} figures`;return}
+    b.className='badge '+v;b.textContent=v==='y'?'Yes':v==='n'?'No':'Tie';
+    tile.classList.add('v'+v);
+    $('ct-'+ab).textContent=`${last.by[ab].y} yes · ${last.by[ab].n} no`;
+  });
+  const counting=!!last&&reveal<STATES.length;
+  $('pips').classList.toggle('stale',!!last&&stale);
+  $('popBarWrap').classList.toggle('hid',!last||counting);
+  if(!last){
+    $('popLbl').textContent='People who like it';$('popNum').textContent='hidden until a vote';$('popBar').style.width='0';
+    $('stLbl').textContent='States voting yes';$('stNum').textContent=`hidden · need ${need()}`;
+  }else if(counting){
+    const yesSoFar=STATES.slice(0,reveal).filter(s=>last.verdict[s[0]]==='y').length;
+    $('popLbl').textContent='People who liked it';$('popNum').textContent='counting…';$('popBar').style.width='0';
+    $('stLbl').textContent='Roll call';$('stNum').textContent=`${yesSoFar} yes so far · need ${last.need}`;
+  }else{
+    $('popLbl').textContent='People who liked it · last vote';$('popNum').textContent=`${last.pop} of ${N} · ${last.pct}%`;$('popBar').style.width=(last.pop/N*100)+'%';
+    $('stLbl').textContent='Last vote';$('stNum').textContent=`${last.sy} of 13 yes · need ${need()}`+(stale?' · before your changes':'');
+  }
+  $('lockWarn').hidden=!hasLock();
+  const clock=$('clock'),crisis=r.kind==='crisis';
+  clock.classList.toggle('crisis',crisis);clock.classList.toggle('low',crisis&&days<=2);
+  $('clockNum').textContent=crisis?days:'—';$('clockLbl').textContent=crisis?(days===1?'day left':'days left'):'no deadline';
+  $('callBtn').disabled=!core||busy;$('callBtn').textContent=counting?'Counting…':'Call the vote';
+  // legend
+  $('legend').innerHTML=`<span class="t">Shirt color = job</span>`+Object.entries(OCC).map(([k,o])=>`<span class="row"><i class="sw" style="background:${o.color}"></i>${o.name}</span>`).join('')+
+   `<span class="note">In each state, people who like your bill stand on the left, people who don't stand on the right, and people who aren't sure stand in the middle.</span><span class="note">Each figure is about 20,000 free people (1790 census). Not shown: about 700,000 enslaved people, who had no voice in their state governments.</span>`;
+  if(MKIDS.length)renderMap(zones);
+  renderInspect();
+}
+function shownVerdict(ab){return last&&!stale&&STIDX[ab]<reveal?last.verdict[ab]:null}
+
+function renderInspect(){
+  document.querySelectorAll('.state').forEach(b=>b.classList.toggle('sel',b.dataset.st===sel));
+  MPATHS.forEach(p=>p.classList.toggle('sel',p.dataset.st===sel));
+  for(const k in MCROWD)MCROWD[k].classList.toggle('sel',MGPARENT(k)===sel);
+  const box=$('inspect');
+  if(!sel){box.innerHTML='<h3>Tap a state</h3>See who lives there and what most of them want.';return}
+  const s=STATES.find(x=>x[0]===sel),[ab,name,rg,mix,landed,popl]=s;
+  const ppl=PEOPLE.filter(p=>p.st===ab);
+  const avg=it=>ppl.reduce((a,p)=>a+baseAmt(it,p),0)/ppl.length;
+  const rated=allItems().map(it=>[it,avg(it)]);
+  const want=rated.filter(([,a])=>a>=.75).map(([it])=>nm(it)),hate=rated.filter(([,a])=>a<=-.75).map(([it])=>nm(it));
+  let lastLine='';
+  if(last&&!stale&&reveal>=STATES.length){const v=last.verdict[ab],c=last.by[ab];
+    lastLine=`<br>Last vote: <b>${v==='y'?'yes':v==='n'?'no':'tie'}</b> (${c.y} yes, ${c.n} no).${v==='s'?' A tie means the state’s delegates split, and its vote does not count.':''}`}
+  else if(last&&stale)lastLine='<br>Your bill has changed since the last vote.';
+  box.innerHTML=`<h3>${name}</h3>${popl[0].toUpperCase()+popl.slice(1)}. ${Object.entries(mix).map(([o,n])=>`${OCC[o].name} ${n}`).join(' · ')}.${landed?' Claims land in the West.':''}${lastLine}
+   <ul><li><span class="lk">Most want:</span> ${want.join('; ')||'nothing on this list'}.</li><li><span class="dk">Most don't want:</span> ${hate.join('; ')||'nothing on this list'}.</li></ul>`;
+}
+
+// ================= Reactions =================
+// every change sends a heart or an angry face up from each person it touches
+const POS=['❤️','❤️','❤️','👍','😀','🎉'],POS2=['😍','❤️','❤️','🎉'],NEG=['😠','👎','😠','😤'],NEG2=['😡','😡','👎','😤'];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function floatEmoji(parent,x,y,ch,size,delay,rise){
+  const t=el('text',{x,y,class:'emo','font-size':size},parent);t.textContent=ch;
+  t.style.setProperty('--dx',((Math.random()-.5)*size*1.6).toFixed(1)+'px');t.style.setProperty('--rise',rise+'px');
+  t.style.animationDelay=Math.round(delay)+'ms';
+  setTimeout(()=>t.remove(),delay+3400);
+}
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)');
+const FLOW=6500; // reactions trickle out over about six and a half seconds
+// the live-stream column: one floating emoji for about every two people who reacted
+function stream(pos,neg,bigPos,bigNeg){
+  const box=$('stream'),h=box.clientHeight;
+  if(REDUCED.matches){const t=document.createElement('span');t.className='sum';t.textContent=`❤️ ${pos}   😠 ${neg}`;box.appendChild(t);setTimeout(()=>t.remove(),2400);return}
+  const total=Math.min(60,Math.round((pos+neg)/2)),nPos=Math.round(total*pos/Math.max(1,pos+neg));
+  // shuffle hearts and angry faces so the flow mixes them
+  const kinds=Array.from({length:total},(_,k)=>k<nPos).sort(()=>Math.random()-.5);
+  for(let k=0;k<total;k++){
+    const good=kinds[k],big=good?Math.random()<bigPos/Math.max(1,pos):Math.random()<bigNeg/Math.max(1,neg);
+    const t=document.createElement('span');t.textContent=pick(good?(big?POS2:POS):(big?NEG2:NEG));
+    t.style.fontSize=(big?25:19)+Math.round(Math.random()*3)+'px';
+    t.style.setProperty('--dx',Math.round((Math.random()-.5)*34)+'px');t.style.setProperty('--h',h+'px');
+    const delay=(k+Math.random()*.6)*FLOW/Math.max(1,total);t.style.animationDelay=Math.round(delay)+'ms';
+    box.appendChild(t);setTimeout(()=>t.remove(),delay+4400);
+  }
+}
+function react(before,after){
+  const list=[];
+  PEOPLE.forEach((c,i)=>{const d=(after?after[i]:0)-(before?before[i]:0);if(d)list.push([c,i,d])});
+  if(!list.length)return;
+  const pos=list.filter(x=>x[2]>0),neg=list.filter(x=>x[2]<0);
+  stream(pos.length,neg.length,pos.filter(x=>x[2]>=3).length,neg.filter(x=>x[2]<=-3).length);
+  if(REDUCED.matches)return;
+  const keep=Math.min(1,80/list.length);
+  list.forEach(([c,i,d])=>{
+    if(Math.random()>keep)return;
+    const z=zoneOf(after?after[i]:null),big=Math.abs(d)>=3,n=1;
+    const [tx,ty]=slotXY(c,z),[mx,my]=mslot(c,z);
+    for(let k=0;k<n;k++){
+      const ch=pick(d>0?(big?POS2:POS):(big?NEG2:NEG)),delay=Math.random()*FLOW;
+      floatEmoji(SVG[c.st],tx+4.5,ty+4,ch,big?23:19,delay,46);
+      if(MFX)floatEmoji(MFX,mx+2.3,my+2,ch,big?12.5:10.5,delay,30);
+    }
+  });
+}
+
+// ================= Roll call =================
+// the states answer one at a time, north to south, the way the Confederation Congress voted
+function rollCall(forced){
+  if(!forced&&ROUND().kind==='crisis')days=Math.max(0,days-1);
+  if(!core){voteCard(forced);return}
+  const t=tally();
+  last={pop:t.pop,pct:Math.round(t.pop/N*100),sy:t.sy,verdict:t.verdict,by:t.by,need:need()};
+  stale=false;reveal=0;busy=true;render();
+  let i=0;
+  const step=()=>{reveal=++i;render();if(i<STATES.length)setTimeout(step,190);else setTimeout(()=>{busy=false;voteCard(forced)},750)};
+  setTimeout(step,350);
+}
+
+// ================= Clock =================
+function spendDay(){
+  if(ROUND().kind!=='crisis')return false;
+  days=Math.max(0,days-1);
+  if(days===0){busy=true;render();setTimeout(()=>{busy=false;rollCall(true)},900);return true}
+  return false;
+}
+
+// ================= Cards =================
+function show(html,wide){const c=$('card');c.className='card'+(wide?' wide':'');c.innerHTML=html;$('veil').hidden=false;const b=c.querySelector('button');b&&b.focus()}
+function hide(){$('veil').hidden=true}
+
+function introCard(){
+  const r=ROUND(),crisis=r.kind==='crisis';
+  const how=R===0?`<ol class="how"><li>Pick a main choice for your bill.</li><li>Add deals to win more states. Every deal helps some people and hurts others.</li><li>Watch the people react. Hearts mean they like your change. Angry faces mean they don't. People walk toward YES or NO, or stay in the middle if they aren't sure.</li><li>Call the vote. You won't see the count until the states answer the roll call.</li></ol>`:'';
+  const rule=R===0?`<div class="rulebox"><b>How Congress votes</b>Each state's delegates vote the way most of its people want. Big or small, every state gets one vote. A bill needs 9 of 13 states.</div>`:'';
+  const clockRule=crisis?`<div class="rulebox crisis"><b>You have ${r.days} days.</b>Every change to your bill takes one day of debate. A vote takes one day too. Clearing your bill is free. When time runs out, Congress votes on whatever bill you have.</div>`:'';
+  show(`<div class="eyebrow${crisis?' crisis':''}">Round ${R+1} of ${PARAMS.rounds.length} · ${r.year} · ${crisis?'Crisis':'Regular business'}</div><h2>${r.title}</h2>${r.intro.map(p=>`<p${R===0?'':' class="big"'}>${p}</p>`).join('')}${how}${rule}${clockRule}
+  <div class="btnrow"><button class="btn go" data-act="start">${crisis?'Start the clock':'Start'}</button></div>`);
+}
+
+function voteCard(forced){
+  const r=ROUND(),crisis=r.kind==='crisis';
+  votesTaken++;
+  const t=tally(),pct=Math.round(t.pop/N*100),nd=need();
+  const noStates=STATES.filter(s=>t.verdict[s[0]]!=='y').map(s=>s[0]);
+  let msg;
+  if(!core){msg='There was no bill to vote on.'}
+  else if(t.pass)msg=pct<50?`Only ${pct}% of the people liked your bill. It passed anyway, because ${t.sy} states voted yes.`:`${t.sy} states voted yes. That was enough.`;
+  else msg=(pct>=50?`${pct}% of the people liked your bill. But people don't vote in Congress. States do. Only ${t.sy} states voted yes, and you needed ${nd}.`:`Only ${t.sy} states voted yes. You needed ${nd}.`)+(hasLock()?' Your bill had a tax in it, so every state had to say yes.':'')+` Not yes: ${noStates.join(', ')}.`;
+  const outOfTime=crisis&&days===0&&!t.pass;
+  if(t.pass||outOfTime){record(t,t.pass?'passed':'timeout')}
+  const head=forced?`<div class="eyebrow crisis">Time is up · Congress votes</div>`:`<div class="eyebrow">Round ${R+1} · Vote ${votesTaken}</div>`;
+  let buttons;
+  if(t.pass)buttons=`<button class="btn go" data-act="next">${R<PARAMS.rounds.length-1?'Next round':'See how you did'}</button>`;
+  else if(outOfTime)buttons=`<button class="btn go" data-act="retry">Try this crisis again</button><button class="btn" data-act="next">Move on</button>`;
+  else buttons=`<button class="btn go" data-act="close">Change my bill</button>`;
+  const hist=(t.pass||outOfTime)?`<div class="history"><b>What really happened</b>${r.history}</div>`:'';
+  show(`${head}<div class="verdict ${t.pass?'y':'n'}">${t.pass?'Passed':outOfTime?'Out of time':'Failed'}</div>
+  <p class="big">${msg}</p>
+  ${core?`<div class="compare"><div><b>${pct}%</b><span>of the people liked it</span></div><div><b>${t.sy} / 13</b><span>states voted yes (need ${nd})</span></div></div>`:''}
+  ${hist}<div class="btnrow">${buttons}</div>`);
+  render();
+}
+
+function record(t,result){
+  const r=ROUND();
+  history[R]={title:r.title,kind:r.kind,bill:bill().map(id=>nm(item(id))),pct:Math.round(t.pop/N*100),sy:t.sy,need:need(),result,popPass:t.popPass,votes:votesTaken};
+}
+
+function endCard(){
+  const rows=PARAMS.rounds.map((r,i)=>{const h=history[i];if(!h)return '';
+    const res=h.result==='passed'?'<span class="ok">Passed</span>':'<span class="bad">Ran out of time</span>';
+    return `<tr><td>${i+1}. ${h.title}${h.kind==='crisis'?' (crisis)':''}</td><td>${h.bill.join(' + ')||'—'}</td><td class="num">${h.pct}%</td><td class="num">${h.sy} of 13</td><td>${res}</td><td>${h.popPass?'<span class="ok">Yes</span>':'<span class="bad">No</span>'}</td></tr>`}).join('');
+  show(`<div class="eyebrow">1787</div><h2>The League of Friendship</h2>
+  <p>Article III of the Articles of Confederation called the states a "firm league of friendship." Here is how your league did.</p>
+  <div class="tablewrap"><table><thead><tr><th>Round</th><th>Your bill</th><th>People who liked it</th><th>States voting yes</th><th>Result</th><th>Would it pass if each person had a vote?</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="history"><b>What came next</b>In May 1787, leaders met in Philadelphia to fix the Articles. They wrote a new Constitution instead. Big states wanted votes counted by population. Small states wanted one vote per state. They compromised: the House of Representatives counts people, and the Senate gives every state two votes.</div>
+  <p><b>Talk about it</b></p>
+  <ol class="q">
+   <li>When did a bill that most people liked fail? Why did it fail?</li>
+   <li>Rhode Island has 3 figures. Virginia has 26. Should they get the same vote? Why or why not?</li>
+   <li>Pick one deal you used. Who did it help, and who paid for it?</li>
+   <li>Congress could not pass a tax unless all 13 states agreed. How did that make the crises harder?</li>
+   <li>If you could change one rule of the Articles, what would you change?</li>
+  </ol>
+  <div class="btnrow"><button class="btn go" data-act="restart">Play again</button><a class="btn" href="index.html" style="text-decoration:none">Back to menu</a></div>`,true);
+}
+
+const MAPD={"W":600,"H":468,"poly":{"canada":"M576.9,-4L577.2,5.1L564.2,15.1L556.3,22.9L546.3,29.6L537.6,33.4L529,37.2L527.7,41.3L519.6,35.8L517.2,24.4L510.6,22.6L507.5,-4L576.9,-4ZM474.5,-4L469.4,9L463.9,26.4L456.6,36.2L452.7,39.1L445.7,47.2L412,49.9L387.4,51.3L376.7,55.6L366.1,67.6L358.9,74.3L356.3,79.5L350,88.2L335.1,88.2L314.6,88.4L305.3,93.1L307.9,97.7L308.5,102.1L310,107.2L305.3,111.1L294.6,116.7L280.2,121.1L261.3,129.7L243.9,135.6L230.4,127.3L231.4,122.2L235,119.8L242.8,113.7L244.7,103.4L249.4,88.2L251.1,65L241.9,42.7L226.3,29.1L217.8,18.3L209.8,3.6L209.8,3.6L210.3,-4L474.5,-4Z","spainLA":"M42.9,-4L49.2,32.7L59.4,44.7L72.3,58.3L82.1,68.8L82.5,79.2L83,89.7L88.8,103.4L96,114.7L89.8,126.3L87,128.5L77.9,135.6L74.4,146.8L67.4,154.9L65.4,166.8L71,180L77.5,191.2L85.5,203.1L82.9,212.6L89.8,222.5L95.8,232.3L95.9,240L101.7,247.1L100.1,252.1L92.7,259L89.6,267.7L82.2,277.2L78,285.8L73.6,295.6L63.5,308.6L57,316.8L49.3,326.2L50.1,336.7L46.4,347.9L50.1,361.4L42.2,370.8L35.2,381.6L29.5,393.9L31.2,402L37.2,409.3L42.5,419.2L60.5,425.4L67.7,435.4L73.4,445.3L78.3,452.4L80.3,455.2L68.9,444.7L54.9,447L38.9,446.3L30.8,438.6L20.2,431.9L9.2,429L-4,422.3L-4,49L-4,49L6,-4L42.9,-4Z","spainFL":"M223.4,472L222.4,466.1L211.6,452.6L205.5,439.2L196.7,434.1L187.5,438.2L173.5,445.2L165.8,442.1L160.9,431.3L148,423.8L139.1,421.8L123.4,421.7L114.3,422.7L106.4,422.7L99,418.8L87.9,416.8L77.7,417.8L71.7,420.2L70.2,424L72.3,434.7L76.9,444.4L80.3,455.2L78.3,452.4L73.4,445.3L67.7,435.4L60.5,425.4L42.5,419.2L37.2,409.3L31.2,402L29.5,393.9L29.5,393.9L87.4,401.1L131.6,405.5L175.9,408.9L178.5,416.9L208.7,420.2L237.6,423.2L241,428.8L254.4,419.8L255.3,430.8L258.3,445.1L262.5,456.9L268,467.5L270.1,472L223.4,472Z","nw":"M210.3,-4L209.8,3.6L217.8,18.3L226.3,29.1L241.9,42.7L251.1,65L249.4,88.2L244.7,103.4L242.8,113.7L235,119.8L231.4,122.2L230.4,127.3L243.9,135.6L261.3,129.7L280.2,121.1L280,130.6L279.4,165L279.4,165L277.4,171.2L275,180.1L272.5,189L264.4,197.1L257.4,200.2L252.2,205.2L247.1,210.2L242.8,217L236.7,220.8L231.8,216L229,212.5L215.9,214.5L205.1,209.5L199.4,201.5L193.2,201.6L189,209.8L181,210.6L173,221L167.6,227.6L157.4,228.8L145,230.9L135.9,225.6L126.8,229.1L124,236.6L115.9,246.1L112.8,246.3L101.7,247.1L95.9,240L95.8,232.3L89.8,222.5L82.9,212.6L85.5,203.1L77.5,191.2L71,180L65.4,166.8L67.4,154.9L74.4,146.8L77.9,135.6L87,128.5L89.8,126.3L96,114.7L88.8,103.4L83,89.7L82.5,79.2L82.1,68.8L72.3,58.3L59.4,44.7L49.2,32.7L42.9,-4L210.3,-4Z","VT":"M412,49.9L445.7,47.2L445.3,54L437.1,66.3L433.7,83.3L432.8,96.3L432.4,107.2L417.1,107.7L416.2,86.6L412.7,75.7L413.8,62.8Z","NH":"M432.4,107.2L432.8,96.3L433.7,83.3L437.1,66.3L445.3,54L445.7,47.2L452.7,39.1L455.4,59.6L458,76.2L462,90.1L464.8,95.5L463,101.1L455.2,105.1Z","ME":"M507.5,-4L510.6,22.6L517.2,24.4L519.6,35.8L527.7,41.3L523.1,48.4L512.8,54.9L504.1,59.8L496.3,56.8L492.9,67.6L485,72.3L478.9,76.8L471.9,81.4L469.6,86.8L466.5,93.5L464.8,95.5L464.8,95.5L462,90.1L458,76.2L455.4,59.6L452.7,39.1L456.6,36.2L463.9,26.4L469.4,9L474.5,-4L507.5,-4Z","MA":"M417.1,107.7L432.4,107.2L455.2,105.1L463,101.1L467.6,106.3L461.5,112L460.8,114.7L463,118.4L468.4,124.3L470.7,128.8L475.5,129.1L480.2,128.1L480.4,123.9L477.7,121.4L476.6,120.4L479.5,120.4L481.3,123.1L482.6,128.1L482.4,130.2L478.6,131.3L474.8,132L469.9,134.5L467.1,132.2L464,133.7L460.4,136.9L458.5,132.4L455.8,129.8L454.3,123.8L446.3,124.7L433,125.2L413.9,125.9Z","MAisl1":"M466.5,139.7L470.4,136.3L473.5,138.5L470.8,140.4Z","MAisl2":"M477.6,140.2L482.3,139.2L483.1,141L478.7,141.7Z","RI":"M446.3,124.7L454.3,123.8L455.8,129.8L458.5,132.4L460.4,136.9L454.2,138.5L446.6,142.4Z","CT":"M413.9,125.9L433,125.2L446.3,124.7L446.6,142.4L442,142.8L432.4,144.8L426.3,145.2L421.1,148.6L412.4,153L414.7,145.4Z","NY":"M392.1,144.8L386.3,142L383.6,132.6L378.5,129L356.8,129.7L328.1,130.3L294.5,130.3L294.6,116.7L305.3,111.1L310,107.2L308.5,102.1L307.9,97.7L305.3,93.1L314.6,88.4L335.1,88.2L350,88.2L356.3,79.5L358.9,74.3L366.1,67.6L376.7,55.6L387.4,51.3L412,49.9L413.8,62.8L412.7,75.7L416.2,86.6L417.1,107.7L413.9,125.9L414.7,145.4L412.4,153L410.3,156.7L408.5,158.4L406.9,160.8L405.8,162.1L406,159.8L407,156.4L407.6,153.3L399.8,149.1Z","LI":"M405.8,163.2L407.8,160.5L411,158.2L415.7,155.4L423.4,154.1L432,152.3L438.5,148.2L447.1,148.8L440.9,154.2L431.4,158.2L421.9,161.9L414.2,163.7L407.4,164.4Z","NJ":"M392.1,144.8L399.8,149.1L407.6,153.3L407,156.4L406,159.8L405.8,162.1L403.1,164.3L401.7,167L406.3,168.3L406.5,176.5L405.7,185.5L401.2,194.2L396.5,201.4L390.4,207.3L387.7,204.4L383.5,199.4L379.4,195.7L377.2,190.7L378.7,187.5L379.6,185.5L383.8,182.7L385.1,180.9L388.9,178.1L391.9,174.1L388.2,171L385.8,165.9L383.2,162.2L384.1,156L387,151.8L389.7,147Z","PA":"M279,188.7L279.4,165L280,130.6L280.2,121.1L294.6,116.7L294.5,130.3L328.1,130.3L356.8,129.7L378.5,129L383.6,132.6L386.3,142L392.1,144.8L389.7,147L387,151.8L384.1,156L383.2,162.2L385.8,165.9L388.2,171L391.9,174.1L388.9,178.1L385.1,180.9L383.8,182.7L379.6,185.5L378,184.5L375.6,184.6L373.7,185.7L372.4,187.8L338.6,188.7L299.6,188.9Z","DE":"M372.4,187.8L373.7,185.7L375.6,184.6L378,184.5L379.6,185.5L378.7,187.5L377.2,190.7L378.4,195.8L380.6,202.1L382.8,207.2L387.2,210.8L388,215.9L388.4,219.8L375.3,220L374.6,216.5L373.3,203.7Z","MD":"M299.6,188.9L338.6,188.7L372.4,187.8L373.3,203.7L374.6,216.5L375.3,220L388.4,219.8L387.5,223.7L385,230.7L372.2,233.2L369.6,229.5L368.5,225.7L364.2,219.4L362.1,213L363.9,206.5L364.6,197.5L367.4,192.3L363.5,196.3L360.7,201.5L359.9,207.4L359,212.3L360.3,222.1L362.5,228.4L363.2,231.2L364.1,233.2L357.5,228.5L350.3,226.2L344.2,221.2L348.1,214.7L348.2,210.3L346.5,208.5L339.8,201.5L334.4,199L332.4,191.8L325.2,189.6L319.9,191.4L313.6,192L309,195.3L299.5,202Z","VA":"M299.5,202L309,195.3L313.6,192L319.9,191.4L325.2,189.6L332.4,191.8L334.4,199L339.8,201.5L346.5,208.5L348.2,210.3L348.1,214.7L344.2,221.2L350.3,226.2L357.5,228.5L364.1,233.2L364.9,235.3L363.9,242.5L363.2,251.5L364.3,256.6L370.6,259.5L371.8,264.1L373.6,269.2L340,270L298.7,270L253.8,268.4L212.8,266.5L223.4,260.6L232.9,254.1L240.6,250.5L248.6,244.1L242.1,237L236.8,227.3L236.7,220.8L242.8,217L247.1,210.2L252.2,205.2L257.4,200.2L264.4,197.1L272.5,189L275,180.1L277.4,171.2L279.4,165L279,188.7L299.6,188.9Z","VAes":"M372.2,233.2L385,230.7L381.2,241.9L375.4,251.1L370.8,254.6L371.1,244.8L372.9,238.3Z","KY":"M236.7,220.8L236.8,227.3L242.1,237L248.6,244.1L240.6,250.5L232.9,254.1L223.4,260.6L212.8,266.5L122.9,257.7L122.1,262.2L92.7,259L100.1,252.1L101.7,247.1L112.8,246.3L115.9,246.1L124,236.6L126.8,229.1L135.9,225.6L145,230.9L157.4,228.8L167.6,227.6L173,221L181,210.6L189,209.8L193.2,201.6L199.4,201.5L205.1,209.5L215.9,214.5L229,212.5L231.8,216Z","NC":"M373.6,269.2L377.1,280.6L382.2,293.3L381.9,302.8L372.2,307.3L361.3,319.7L349.3,319.5L336.7,330.5L331.5,339.6L318.9,339.4L294.9,315.2L271.4,314.4L268.4,307.1L266.1,305.8L239.7,303.7L222.5,308.1L212.1,307.6L197,306.8L203.5,299.7L214.9,293.6L226.7,287.7L234.2,283.4L246.8,278.2L253.8,268.4L298.7,270L340,270Z","TN":"M253.8,268.4L246.8,278.2L234.2,283.4L226.7,287.7L214.9,293.6L203.5,299.7L197,306.8L169.9,305L161.7,304.4L115.5,300.3L73.6,295.6L78,285.8L82.2,277.2L89.6,267.7L92.7,259L122.1,262.2L122.9,257.7L212.8,266.5Z","SC":"M318.9,339.4L311.2,344.9L304.7,353.9L297.1,361.6L289.5,367.2L285.1,370.5L277.4,375.6L271.9,380.6L268.1,386.2L262.5,379.1L254.8,366L246.5,355.5L244.1,347.6L237.4,338.4L229.2,327.8L223.1,321.6L217.1,315.1L222.5,308.1L239.7,303.7L266.1,305.8L268.4,307.1L271.4,314.4L294.9,315.2Z","GA":"M268.1,386.2L262.9,390.8L259.4,399.8L255.8,408.7L254.4,419.8L241,428.8L237.6,423.2L208.7,420.2L178.5,416.9L175.9,408.9L175.4,393.3L177.9,377.9L175.2,360.4L169.9,305L197,306.8L212.1,307.6L222.5,308.1L217.1,315.1L223.1,321.6L229.2,327.8L237.4,338.4L244.1,347.6L246.5,355.5L254.8,366L262.5,379.1Z","GAw":"M169.9,305L175.2,360.4L177.9,377.9L175.4,393.3L175.9,408.9L131.6,405.5L87.4,401.1L29.5,393.9L35.2,381.6L42.2,370.8L50.1,361.4L46.4,347.9L50.1,336.7L49.3,326.2L57,316.8L63.5,308.6L73.6,295.6L115.5,300.3L161.7,304.4Z"},"lake":{"superior":"M114.1,-4L99.7,-1.8L92.7,-4L114.1,-4ZM209.3,-4L210,1L213.8,11.6L213.8,11.6L203.5,4.5L186.5,5.3L173.7,10L159.7,6.2L147.1,-4L209.3,-4Z","michigan":"M205.5,29.2L200.9,30.2L189,44.9L181.2,50.8L175.9,60.7L173,73.4L170.1,86.1L172.6,101.8L170.6,114.5L164.1,124.3L156.8,130.9L149.9,132.9L145.3,130.4L144.4,125.1L142.3,112L142.8,96.6L146.7,81.4L150.3,67.5L157.9,55.3L164.7,40.4L159.2,30.8L172.4,25.5L185.3,21.3L197.9,22.2L205.6,27.9Z","huron":"M244.7,103.4L243,93.1L241.8,82.7L235.2,76L228.3,80.9L217.8,86.2L220.1,77.9L226.9,70.5L228.4,58.9L228.8,49.9L221.1,40.5L213.4,33.6L205.5,29.2L210.3,24.8L217.5,24.7L224.7,23.8L237.4,20.6L255.3,21.3L267.8,25.5L274.9,28.3L280.1,37.4L285.4,46.5L290.8,54.3L291.6,62.1L286,65.9L279.6,64.5L273.2,62.6L269.8,54L265.3,48.7L260.9,46L264.3,53.8L265.5,65.5L260.1,73.8L258.4,84.6L257.5,96.2L249.8,102.3Z","erie":"M229.9,127.8L235.5,129.3L242.1,131.4L248,128L253.9,122.5L267.4,112.9L278.8,114.7L286.3,116.1L285.4,110.2L297.7,108.5L304.3,107.7L310.5,107.2L311.3,107.7L303.3,116.2L294.6,123.4L288.1,126.9L280,130.6L270.8,133.8L257.1,142.4L247.4,143.4L237.8,143.8L230.3,138.9L223.7,136L225,129.6Z","ontario":"M307.9,97.7L304.3,99.5L298.7,99.5L293.1,98.2L301.6,87.9L311.8,82.3L324.4,80.1L340.5,79.9L346.1,77.2L355.2,73.1L358.4,74.8L361,80.7L361.3,89.7L355.7,92.4L346.5,97L335.3,98L318.4,95.1Z"},"river":{"miss":"M42.9,-4L49.2,32.7L59.4,44.7L72.3,58.3L82.1,68.8L82.5,79.2L83,89.7L88.8,103.4L96,114.7L89.8,126.3L87,128.5L77.9,135.6L74.4,146.8L67.4,154.9L65.4,166.8L71,180L77.5,191.2L85.5,203.1L82.9,212.6L89.8,222.5L95.8,232.3L95.9,240L101.7,247.1L100.1,252.1L92.7,259L89.6,267.7L82.2,277.2L78,285.8L73.6,295.6L63.5,308.6L57,316.8L49.3,326.2L50.1,336.7L46.4,347.9L50.1,361.4L42.2,370.8L35.2,381.6L29.5,393.9L31.2,402L37.2,409.3L42.5,419.2L60.5,425.4L67.7,435.4L73.4,445.3L78.3,452.4L80.3,455.2","ohio":"M289.5,170.3L279.4,165L277.4,171.2L275,180.1L272.5,189L264.4,197.1L257.4,200.2L252.2,205.2L247.1,210.2L242.8,217L236.7,220.8L231.8,216L229,212.5L215.9,214.5L205.1,209.5L199.4,201.5L193.2,201.6L189,209.8L181,210.6L173,221L167.6,227.6L157.4,228.8L145,230.9L135.9,225.6L126.8,229.1L124,236.6L115.9,246.1L112.8,246.3L101.7,247.1","stlaw":"M358.9,74.3L366.1,67.6L376.7,55.6L387.4,51.3L407.6,37.3L425.2,16.7L447.2,0.7","lower":"M101.7,247.1L100.1,252.1L92.7,259L89.6,267.7L82.2,277.2L78,285.8L73.6,295.6L63.5,308.6L57,316.8L49.3,326.2L50.1,336.7L46.4,347.9L50.1,361.4L42.2,370.8L35.2,381.6L29.5,393.9L31.2,402L37.2,409.3L42.5,419.2L60.5,425.4L67.7,435.4L73.4,445.3L78.3,452.4L80.3,455.2"},"pts":{"canada":[352.4,38.4],"spainLA":[26.2,336],"spainFL":[234.4,448.3],"atlantic":[489.8,322.2],"gulf":[114.3,446.9],"nw":[168.9,160.8],"nwNations":[167.4,178.7],"sw":[106.3,369.3],"swNations":[104.6,386],"vt":[428.9,68.2],"kyLbl":[177.1,221.9],"tnLbl":[147.4,273.6],"algiersFrom":[483.6,278.9],"neworleans":[60.5,425.4],"springfield":[431.1,123.5],"nyc":[406.3,160.8],"missLbl":[61.1,335.5],"ohioLbl":[123.9,218],"philly":[384.5,181.4]},"groups":{"VA":{"at":[317.2,243.3],"cols":5},"KY":{"at":[176.9,239.1],"cols":4},"NC":{"at":[304.8,294.7],"cols":5},"TN":{"at":[148.5,284.8],"cols":3},"SC":{"at":[271.6,338.1],"cols":4},"GA":{"at":[217.6,371.1],"cols":3},"PA":{"at":[333.3,159.7],"cols":6},"NY":{"at":[358.3,115.5],"cols":6},"NH":{"at":[557.1,82.1],"cols":4,"to":[460.2,97.4]},"MA":{"at":[538,128.7],"cols":5,"to":[458.9,114.9]},"RI":{"at":[487.2,172.3],"cols":3,"to":[452.9,134.2]},"CT":{"at":[451.1,211.4],"cols":4,"to":[429.9,135.9]},"NJ":{"at":[427.2,258.4],"cols":3,"to":[396.4,178.3]},"DE":{"at":[425.2,297.8],"cols":3,"to":[379.8,207.3]},"MD":{"at":[419.1,337.4],"cols":4,"to":[373.4,222.9]}}};
+
+// ================= Map of the nation =================
+const MFW=4.6,MFH=7.6;
+const PATH_ST={VA:'VA',VAes:'VA',KY:'VA',NC:'NC',TN:'NC',GA:'GA',GAw:'GA',MA:'MA',MAisl1:'MA',MAisl2:'MA',ME:'MA',NY:'NY',LI:'NY',NH:'NH',RI:'RI',CT:'CT',NJ:'NJ',PA:'PA',DE:'DE',MD:'MD',SC:'SC'};
+const TINT={none:'#efe6cf',y:'#c7e6d2',n:'#f1cabd',s:'#d9dde5'};
+const MGROUP=c=>c.st==='VA'&&c.occ==='W'?'KY':c.st==='NC'&&c.occ==='W'?'TN':c.st;
+const MGPARENT=k=>k==='KY'?'VA':k==='TN'?'NC':k;
+const MG={},MKIDS=[],MPATHS=[],MBADGE={},MCROWD={};let MFX=null;
+PEOPLE.forEach(c=>{const k=MGROUP(c);c.mg=k;MG[k]=MG[k]||{n:0};c.ms=MG[k].n++});
+for(const k in MG){const g=Object.assign(MG[k],MAPD.groups[k]);g.rows=Math.ceil(g.n/g.cols);g.pw=g.cols*MFW+3;g.ph=g.rows*MFH+3;g.tw=3*g.pw+6;g.yx=g.at[0]-g.tw/2;g.mx=g.at[0]-g.pw/2;g.nx=g.at[0]+g.pw/2+3;g.py=g.at[1]-g.ph/2}
+function mslot(c,zone){
+  const g=MG[c.mg],col=c.ms%g.cols,row=Math.floor(c.ms/g.cols),y=g.py+g.ph-1.5-(row+1)*MFH;
+  return [(zone==='y'?g.yx:zone==='n'?g.nx:g.mx)+1.5+col*MFW,y];
+}
+function mtext(x,y,txt,cls,parent,extra){const t=el('text',Object.assign({x,y,class:cls},extra||{}),parent);t.textContent=txt;return t}
+function buildMap(){
+  const s=$('map'),P=MAPD.pts;s.setAttribute('viewBox',`0 0 ${MAPD.W} ${MAPD.H}`);
+  const defs=el('defs',{},s);
+  const hp=el('pattern',{id:'mhatch',width:5,height:5,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);
+  el('line',{x1:0,y1:0,x2:0,y2:5,stroke:'#8b7a5a','stroke-width':1.1,'stroke-opacity':.4},hp);
+  const mk=el('marker',{id:'marrow',viewBox:'0 0 10 10',refX:7,refY:5,markerWidth:6,markerHeight:6,orient:'auto'},defs);
+  el('path',{d:'M0 0L10 5L0 10z',fill:'#1a2740'},mk);
+  el('rect',{x:0,y:0,width:MAPD.W,height:MAPD.H,fill:'#cfe3ee'},s);
+  const other={canada:'#dfe4dc',spainLA:'#e9dcc4',spainFL:'#e9dcc4',nw:'#f1eadb',VT:'#e2e2df'};
+  for(const k in MAPD.poly){
+    const st=PATH_ST[k];
+    const p=el('path',{d:MAPD.poly[k],stroke:'#8b7a5a','stroke-width':.6,'stroke-linejoin':'round'},s);
+    if(st){p.setAttribute('class','st');p.dataset.st=st;p.style.fill=TINT.none;MPATHS.push(p)}
+    else p.setAttribute('fill',other[k]);
+    if(k==='nw'||k==='KY'||k==='TN'||k==='GAw')el('path',{d:MAPD.poly[k],fill:'url(#mhatch)',class:'hatch','pointer-events':'none'},s);
+  }
+  for(const k in MAPD.lake)el('path',{d:MAPD.lake[k],fill:'#cfe3ee',stroke:'#93b6cb','stroke-width':.5},s);
+  el('path',{d:MAPD.river.stlaw,fill:'none',stroke:'#4f8fb8','stroke-width':1.1},s);
+  el('path',{d:MAPD.river.ohio,fill:'none',stroke:'#4f8fb8','stroke-width':1.2,'stroke-linejoin':'round'},s);
+  el('path',{d:MAPD.river.miss,fill:'none',stroke:'#4f8fb8','stroke-width':1.4,'stroke-linejoin':'round'},s);
+  // the river round: the lower Mississippi stands out
+  const ovR=el('g',{class:'ov ov-river'},s);
+  el('path',{d:MAPD.river.lower,fill:'none',stroke:'#fff','stroke-width':4.2,'stroke-linejoin':'round','stroke-linecap':'round'},ovR);
+  el('path',{d:MAPD.river.lower,fill:'none',stroke:'#1f6fae','stroke-width':2.4,'stroke-linejoin':'round','stroke-linecap':'round'},ovR);
+  // labels
+  const L=el('g',{'pointer-events':'none'},s);
+  mtext(P.canada[0],P.canada[1],'BRITISH CANADA','ml-region halo',L,{'text-anchor':'middle'});
+  mtext(P.spainLA[0],P.spainLA[1],'SPANISH LOUISIANA','ml-region halo',L,{'text-anchor':'middle',transform:`rotate(-90 ${P.spainLA[0]} ${P.spainLA[1]})`});
+  mtext(P.spainFL[0],P.spainFL[1],'SPANISH FLORIDA','ml-region halo',L,{'text-anchor':'middle'});
+  mtext(P.atlantic[0],P.atlantic[1],'ATLANTIC OCEAN','ml-water',L,{'text-anchor':'middle'});
+  mtext(P.gulf[0],P.gulf[1],'GULF OF MEXICO','ml-water gulf',L,{'text-anchor':'middle'});
+  mtext(P.nw[0],P.nw[1],'WESTERN LANDS','ml-region halo',L,{'text-anchor':'middle'});
+  mtext(P.nwNations[0],P.nwNations[1],'Home to the Shawnee, Miami,','ml-note halo',L,{'text-anchor':'middle'});
+  mtext(P.nwNations[0],P.nwNations[1]+8.5,'and other Native nations','ml-note halo',L,{'text-anchor':'middle'});
+  mtext(P.sw[0],P.sw[1],'WESTERN LANDS','ml-region halo',L,{'text-anchor':'middle'});
+  mtext(P.swNations[0],P.swNations[1],'Home to the Cherokee, Creek,','ml-note halo',L,{'text-anchor':'middle'});
+  mtext(P.swNations[0],P.swNations[1]+8.5,'Chickasaw, and Choctaw','ml-note halo',L,{'text-anchor':'middle'});
+  mtext(P.vt[0],P.vt[1],'Vermont','ml-note halo',L,{'text-anchor':'middle'});
+  mtext(P.vt[0],P.vt[1]+8,'(not a state)','ml-note halo',L,{'text-anchor':'middle'});
+  mtext(P.missLbl[0],P.missLbl[1],'Mississippi R.','ml-river halo',L,{'text-anchor':'middle',transform:`rotate(-72 ${P.missLbl[0]} ${P.missLbl[1]})`});
+  mtext(P.ohioLbl[0],P.ohioLbl[1],'Ohio R.','ml-river halo',L,{'text-anchor':'middle'});
+  // round overlays
+  const ovL=el('g',{class:'ov ov-lands','pointer-events':'none'},s);
+  ['nw','KY','TN','GAw'].forEach(k=>el('path',{d:MAPD.poly[k],fill:'none',stroke:'#a87d12','stroke-width':1.3,'stroke-dasharray':'4 3'},ovL));
+  mtext(P.nw[0],P.nw[1]-12,'Who gets these lands?','ml-call halo',ovL,{'text-anchor':'middle'});
+  const ovP=el('g',{class:'ov ov-pirates','pointer-events':'none'},s);
+  const [ax,ay]=P.algiersFrom;
+  el('line',{x1:ax,y1:ay,x2:MAPD.W-6,y2:ay,stroke:'#1a2740','stroke-width':1.3,'stroke-dasharray':'5 3','marker-end':'url(#marrow)'},ovP);
+  el('path',{d:`M${ax-12} ${ay-1}h18l-3 5h-12z`,fill:'#7a4e2a'},ovP);el('path',{d:`M${ax-4} ${ay-1}v-11l7 9z`,fill:'#fbfbf9',stroke:'#7a4e2a','stroke-width':.6},ovP);
+  mtext(ax+6,ay-6,'To Algiers, North Africa','ml-call halo',ovP);
+  mtext(ax+6,ay+11,'about 4,000 miles','ml-note halo',ovP);
+  const [ox,oy]=P.neworleans;
+  el('circle',{cx:ox,cy:oy,r:3,fill:'#c6452e',stroke:'#fff','stroke-width':1},ovR);
+  mtext(ox+6,oy+2,'New Orleans','ml-call halo',ovR);
+  mtext(ox+6,oy+11,'Spain controls the mouth of the river','ml-note halo',ovR);
+  const ovS=el('g',{class:'ov ov-shays','pointer-events':'none'},s);
+  const [sx,sy]=P.springfield;
+  el('path',{d:`M${sx} ${sy-5}l1.5 3.4 3.7.3-2.8 2.4.9 3.6-3.3-2-3.3 2 .9-3.6-2.8-2.4 3.7-.3z`,fill:'#c6452e',stroke:'#fff','stroke-width':.6},ovS);
+  mtext(sx-6,sy-6,'Springfield arsenal','ml-call halo',ovS,{'text-anchor':'end'});
+  mtext(sx-6,sy+3,"Shays' rebels march here",'ml-note halo',ovS,{'text-anchor':'end'});
+  // crowds
+  const lead=el('g',{'pointer-events':'none'},s),crowds=el('g',{},s);
+  for(const k in MG){
+    const g=MG[k],st=MGPARENT(k),grp=el('g',{class:'crowd'},crowds);grp.dataset.st=st;MCROWD[k]=grp;
+    let bx,by;
+    if(g.to){
+      const cx=g.yx-4,cy=g.py-13,cw=g.tw+8,ch=g.ph+17,[tx,ty]=g.to;
+      const lx=Math.max(cx,Math.min(tx,cx+cw)),ly=Math.max(cy,Math.min(ty,cy+ch));
+      el('line',{x1:lx,y1:ly,x2:tx,y2:ty,stroke:'#1a2740','stroke-width':.7},lead);
+      el('circle',{cx:tx,cy:ty,r:1.9,fill:'#1a2740'},lead);
+      el('rect',{x:cx,y:cy,width:cw,height:ch,rx:3,fill:'#fbfbf9',stroke:'#1a2740','stroke-width':.7,class:'ccard'},grp);
+      mtext(cx+4,cy+10,k,'ml-st',grp);bx=cx+cw-22;by=cy+3;
+    }else if(k==='KY'||k==='TN'){
+      mtext(g.at[0],g.py-3.5,k==='KY'?'Kentucky (Virginia)':'Tennessee (N. Carolina)','ml-sub halo',grp,{'text-anchor':'middle'});
+    }else{
+      mtext(g.at[0]-1,g.py-3.5,k,'ml-st halo',grp,{'text-anchor':'end'});bx=g.at[0]+1.5;by=g.py-12.2;
+    }
+    el('rect',{x:g.yx,y:g.py,width:g.pw,height:g.ph,rx:2,class:'pad pad-y'},grp);
+    el('rect',{x:g.mx,y:g.py,width:g.pw,height:g.ph,rx:2,class:'pad pad-m'},grp);
+    el('rect',{x:g.nx,y:g.py,width:g.pw,height:g.ph,rx:2,class:'pad pad-n'},grp);
+    if(bx!==undefined){const b=el('g',{class:'bdg',style:'display:none'},grp);el('rect',{x:bx,y:by,width:18,height:9.5,rx:2},b);mtext(bx+9,by+7.2,'','',b,{'text-anchor':'middle'});MBADGE[st]=b}
+  }
+  PEOPLE.forEach((c,i)=>{
+    const k=el('g',{class:'mk','pointer-events':'none'},MCROWD[c.mg]);
+    el('rect',{x:.5,y:3.7,width:3.6,height:4.1,rx:1.3,fill:OCC[c.occ].color},k);
+    el('circle',{cx:2.3,cy:1.9,r:1.6,fill:SKIN[i%SKIN.length]},k);
+    k.style.transitionDelay=c.delay+'ms';MKIDS[i]=k;
+  });
+  MFX=el('g',{'pointer-events':'none'},s);
+}
+function renderMap(zones){
+  $('map').classList.toggle('idle',!core);
+  PEOPLE.forEach((c,i)=>{const [x,y]=mslot(c,zones[i]);MKIDS[i].style.transform=`translate(${x}px,${y}px)`});
+  MPATHS.forEach(p=>{const v=shownVerdict(p.dataset.st);p.style.fill=v?TINT[v]:TINT.none});
+  for(const st in MBADGE){const b=MBADGE[st],v=shownVerdict(st);b.style.display=v?'':'none';if(!v)continue;
+    b.querySelector('rect').setAttribute('fill',v==='y'?'#1d8a5c':v==='n'?'#c6452e':'#7d8796');b.querySelector('text').textContent=v==='y'?'YES':v==='n'?'NO':'TIE'}
+}
+// where the map lives: its own column on wide screens, a swipe-over panel on narrow ones
+const WIDE=matchMedia('(min-width: 1200px)');
+function placeMap(){(WIDE.matches?$('mapCol'):$('viewMap')).appendChild($('mapCard'))}
+WIDE.addEventListener('change',placeMap);
+function showView(v){
+  const box=$('views'),m=$('viewMap');
+  const left=v==='map'?m.offsetLeft+Math.max(0,m.offsetWidth-box.clientWidth):0;
+  box.scrollTo({left,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+}
+$('views').addEventListener('scroll',()=>{const onMap=$('views').scrollLeft>$('viewMap').offsetLeft*.5;
+  $('tabMap').setAttribute('aria-selected',onMap);$('tabStates').setAttribute('aria-selected',!onMap)},{passive:true});
+
+// ================= Events =================
+function startRound(){core=null;deals.clear();sel=null;buildRound();introCard()}
+document.addEventListener('click',e=>{
+  const tab=e.target.closest('[data-view]');
+  if(tab){showView(tab.dataset.view);return}
+  const ms=e.target.closest('#map [data-st]');
+  if(ms){sel=ms.dataset.st;renderInspect();return}
+  const st=e.target.closest('.state');
+  if(st){sel=st.dataset.st;renderInspect();return}
+  const b=e.target.closest('button');if(!b||busy)return;
+  if(b.dataset.core||b.dataset.deal||b.id==='resetBtn'){
+    if(b.dataset.core&&core===b.dataset.core)return;
+    if(b.id==='resetBtn'&&!core&&!deals.size)return;
+    const free=b.id==='resetBtn'; // clearing the bill never costs a day
+    const before=scores();
+    if(b.dataset.core)core=b.dataset.core;
+    else if(b.dataset.deal){const id=b.dataset.deal;deals.has(id)?deals.delete(id):deals.add(id)}
+    else{core=null;deals.clear()}
+    if(last)stale=true;
+    react(before,scores());
+    if(free||!spendDay())render();
+  }
+  else if(b.id==='callBtn'){rollCall(false)}
+  else if(b.dataset.act==='start'||b.dataset.act==='close'){hide()}
+  else if(b.dataset.act==='retry'){history[R]=undefined;core=null;deals.clear();buildRound();introCard()}
+  else if(b.dataset.act==='next'){if(R<PARAMS.rounds.length-1){R++;startRound()}else endCard()}
+  else if(b.dataset.act==='restart'){R=0;history.length=0;startRound()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('veil').hidden&&$('card').querySelector('[data-act="close"],[data-act="start"]'))hide()});
+
+buildBoard();buildMap();placeMap();startRound();
+</script>
+
+</body>
+</html>
